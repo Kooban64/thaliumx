@@ -1,0 +1,29 @@
+{
+  "project_name": "thaliumx-blinkfinance",
+  "server": {
+    "port": "5001",
+    "ssl": false,
+    "domain": "blinkfinance"
+  },
+  "data_source": {
+    "dns": "postgres://thaliumx:ThaliumX2025@thaliumx-postgres:5432/thaliumx?sslmode=disable"
+  },
+  "redis": {
+    "dns": "thaliumx-redis:6379"
+  },
+  "typesense": {
+    "dns": "http://thaliumx-typesense:8108"
+  },
+  "type_sense_key": "ThaliumX2025",
+  "notification": {
+    "slack": {
+      "webhook_url": ""
+    },
+    "webhook": {
+      "url": "",
+      "headers": {}
+    }
+  },
+  "enable_telemetry": false,
+  "enable_observability": false
+}
