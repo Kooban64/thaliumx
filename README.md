@@ -1,165 +1,208 @@
 # Thaliumx Platform
 
-A comprehensive financial trading infrastructure platform built with microservices architecture.
+A comprehensive, production-ready infrastructure backbone for building modern financial applications.
 
-## Prerequisites
+[![Version](https://img.shields.io/badge/version-0.2.0--backbone-blue.svg)](https://github.com/thaliumx/thaliumx)
+[![Services](https://img.shields.io/badge/services-32-green.svg)](#services)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- **Node.js** >= 20.0.0
-- **pnpm** >= 9.0.0
-- **Docker** >= 24.0.0
-- **Docker Compose** >= 2.20.0
+## 🚀 Overview
 
-## Quick Start
+Thaliumx provides a complete Docker-based infrastructure with 32 pre-configured services covering:
 
-### 1. Install Dependencies
+- **Data Storage**: PostgreSQL (TimescaleDB), MongoDB, Redis, Typesense
+- **Messaging**: Kafka (KRaft), Schema Registry
+- **Security**: Keycloak, Vault, OPA, Wazuh SIEM
+- **API Gateway**: APISIX with Dashboard
+- **Observability**: Prometheus, Grafana, Loki, Tempo, OpenTelemetry
+- **Fintech**: Ballerine (KYC/KYB), BlinkFinance (Ledger)
 
-```bash
-# Install pnpm if not already installed
-npm install -g pnpm@9
+## 📊 Project Status
 
-# Install project dependencies
-pnpm install
+| Category | Status | Services |
+|----------|--------|----------|
+| Data Layer | ✅ Complete | PostgreSQL, MongoDB, Redis, Typesense |
+| Messaging | ✅ Complete | Kafka, Schema Registry, Kafka UI |
+| Security | ✅ Complete | Keycloak, Vault, OPA, Wazuh (3) |
+| Gateway | ✅ Complete | APISIX, etcd, Dashboard |
+| Observability | ✅ Complete | 10 services |
+| Fintech | ✅ Complete | Ballerine (3), BlinkFinance |
+| Core | ✅ Placeholder | Frontend, Backend |
+| Trading | 🔲 Planned | Dingir, Liquibook, QuantLib |
+
+**Total: 32 services running and healthy**
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        THALIUMX PLATFORM                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
+│   │ Frontend │  │ Backend  │  │Ballerine │  │BlinkFin. │       │
+│   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘       │
+│        └──────────────┴──────────────┴──────────────┘           │
+│                           │                                      │
+│                    ┌──────┴──────┐                              │
+│                    │   APISIX    │                              │
+│                    │   Gateway   │                              │
+│                    └──────┬──────┘                              │
+│                           │                                      │
+│   ┌───────────────────────┼───────────────────────┐             │
+│   │              Security Layer                    │             │
+│   │  Keycloak │ Vault │ OPA │ Wazuh SIEM         │             │
+│   └───────────────────────────────────────────────┘             │
+│                                                                  │
+│   ┌───────────────────────┬───────────────────────┐             │
+│   │      Data Layer       │    Messaging Layer    │             │
+│   │ PostgreSQL │ MongoDB  │  Kafka │ Schema Reg.  │             │
+│   │ Redis │ Typesense     │  Kafka UI             │             │
+│   └───────────────────────┴───────────────────────┘             │
+│                                                                  │
+│   ┌───────────────────────────────────────────────┐             │
+│   │            Observability Layer                 │             │
+│   │ Prometheus │ Grafana │ Loki │ Tempo │ OTEL   │             │
+│   └───────────────────────────────────────────────┘             │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Start Infrastructure
+## 🚀 Quick Start
 
 ```bash
-# Start all Docker services
-pnpm docker:up
+# Clone the repository
+git clone <repository-url> thaliumx
+cd thaliumx
 
-# Or start specific service groups
-pnpm docker:up:infra        # databases, messaging, security, gateway
-pnpm docker:up:apps         # core, trading, fintech
-pnpm docker:up:observability # monitoring stack
+# Create Docker network
+docker network create --driver bridge --subnet 172.28.0.0/16 thaliumx-net
+
+# Generate Wazuh certificates
+cd docker/wazuh && chmod +x scripts/generate-certs.sh && ./scripts/generate-certs.sh && cd ../..
+
+# Start all services
+cd docker && docker compose up -d
+
+# Check status (wait 5-10 minutes for all services)
+docker ps --filter name=thaliumx --format "table {{.Names}}\t{{.Status}}"
 ```
 
-### 3. View Running Services
+## 📚 Documentation
 
-```bash
-pnpm docker:ps
-```
+| Document | Description |
+|----------|-------------|
+| [Installation Guide](docs/INSTALLATION_GUIDE.md) | Complete setup from zero |
+| [Core Services](docs/core-services/README.md) | Service descriptions and value |
+| [Installation Tips](docs/installation-tips/README.md) | Fixes and workarounds |
 
-## Project Structure
+## 🔗 Access Points
+
+### Web Interfaces
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Grafana | http://localhost:3000 | admin / ThaliumX2025 |
+| Keycloak | http://localhost:8080 | admin / ThaliumX2025 |
+| Vault | http://localhost:8200 | Token: <VAULT_TOKEN> |
+| APISIX Dashboard | http://localhost:9000 | admin / ThaliumX2025 |
+| Kafka UI | http://localhost:8081 | - |
+| Wazuh Dashboard | https://localhost:5601 | admin / SecretPassword |
+| Ballerine Backoffice | http://localhost:3001 | - |
+| Prometheus | http://localhost:9090 | - |
+
+### APIs
+
+| Service | URL |
+|---------|-----|
+| APISIX Gateway | http://localhost:9080 |
+| Schema Registry | http://localhost:8085 |
+| OPA | http://localhost:8181 |
+| Typesense | http://localhost:8108 |
+| BlinkFinance | http://localhost:5001 |
+| Ballerine Workflow | http://localhost:3003 |
+
+### Databases
+
+| Service | Connection |
+|---------|------------|
+| PostgreSQL | `postgres://postgres:ThaliumX2025@localhost:5432/thaliumx` |
+| MongoDB | `mongodb://admin:ThaliumX2025@localhost:27017` |
+| Redis | `redis://localhost:6379` |
+
+## 📁 Project Structure
 
 ```
 thaliumx/
-├── package.json              # Root package.json with Docker scripts
-├── pnpm-workspace.yaml       # PNPM workspace configuration
-├── .npmrc                    # PNPM settings
-├── .gitignore
-│
-├── docker/                   # Docker orchestration
+├── docker/                    # Docker Compose configurations
 │   ├── compose.yaml          # Master orchestrator
-│   ├── .env                  # Environment variables
-│   ├── Makefile              # Make commands
-│   ├── databases/            # PostgreSQL, MongoDB, Redis, Typesense
-│   ├── messaging/            # Kafka (KRaft)
+│   ├── databases/            # PostgreSQL, MongoDB, Redis
+│   ├── messaging/            # Kafka, Schema Registry
 │   ├── security/             # Keycloak, Vault, OPA
 │   ├── gateway/              # APISIX, etcd
-│   ├── core/                 # Frontend, Backend
-│   ├── trading/              # Dingir, Liquibook, QuantLib
+│   ├── observability/        # Prometheus, Grafana, Loki, etc.
+│   ├── wazuh/                # Wazuh SIEM/XDR
 │   ├── fintech/              # Ballerine, BlinkFinance
-│   └── observability/        # Prometheus, Grafana, Loki, etc.
-│
-├── frontend/                 # Frontend application (workspace)
-├── backend/                  # Backend application (workspace)
-├── dingir/                   # Dingir Exchange (workspace)
-├── liquibook/                # Liquibook (workspace)
-├── quantlib/                 # QuantLib service (workspace)
-├── ballerine/                # Ballerine (workspace)
-├── blinkfinance/             # BlinkFinance (workspace)
-└── packages/                 # Shared packages (workspace)
+│   ├── typesense/            # Search engine
+│   ├── core/                 # Frontend, Backend
+│   └── trading/              # (Planned) Trading services
+├── docs/                      # Documentation
+│   ├── INSTALLATION_GUIDE.md
+│   ├── core-services/
+│   └── installation-tips/
+└── README.md                  # This file
 ```
 
-## Docker Commands
+## 🏷️ Version History
 
-All Docker commands are available via pnpm scripts:
+| Version | Tag | Description |
+|---------|-----|-------------|
+| 0.2.0 | v0.2.0-backbone | Complete backbone with 32 services + docs |
+| 0.1.0 | v0.1.0-core-services | Initial 28 services |
 
-| Command | Description |
-|---------|-------------|
-| `pnpm docker:up` | Start all services |
-| `pnpm docker:down` | Stop all services |
-| `pnpm docker:logs` | View logs |
-| `pnpm docker:ps` | List running containers |
-| `pnpm docker:clean` | Stop and remove all containers/volumes |
-| `pnpm docker:up:databases` | Start databases only |
-| `pnpm docker:up:messaging` | Start Kafka only |
-| `pnpm docker:up:security` | Start security services |
-| `pnpm docker:up:gateway` | Start API gateway |
-| `pnpm docker:up:core` | Start frontend/backend |
-| `pnpm docker:up:trading` | Start trading services |
-| `pnpm docker:up:fintech` | Start fintech services |
-| `pnpm docker:up:observability` | Start monitoring stack |
-| `pnpm docker:up:infra` | Start all infrastructure |
-| `pnpm docker:up:apps` | Start all applications |
+## 🗺️ Roadmap
 
-Alternatively, use Make commands from the `docker/` directory:
+### Completed ✅
+- [x] Data Layer (PostgreSQL/TimescaleDB, MongoDB, Redis, Typesense)
+- [x] Messaging Layer (Kafka KRaft, Schema Registry, Kafka UI)
+- [x] Security Layer (Keycloak, Vault, OPA, Wazuh SIEM)
+- [x] Gateway Layer (APISIX, etcd, Dashboard)
+- [x] Observability Layer (10 services)
+- [x] Fintech Layer (Ballerine, BlinkFinance)
+- [x] Core Layer (Frontend/Backend placeholders)
+- [x] Documentation
 
-```bash
-cd docker
-make help    # Show all available commands
-make up      # Start all services
-make down    # Stop all services
-```
+### Planned 🔲
+- [ ] Trading Services (Dingir Exchange, Liquibook, QuantLib)
+- [ ] Citus for multi-tenancy
+- [ ] Production hardening
+- [ ] Kubernetes deployment
+- [ ] CI/CD pipelines
 
-## Service Ports
+## 🤝 Contributing
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Frontend | 3001 | Web application |
-| Backend | 8000 | API server |
-| PostgreSQL | 5432 | TimescaleDB |
-| MongoDB | 27017 | Document store |
-| Redis | 6379 | Cache/Queue |
-| Typesense | 8108 | Search engine |
-| Kafka | 9092 | Message broker |
-| Keycloak | 8080 | Identity provider |
-| Vault | 8200 | Secrets management |
-| OPA | 8181 | Policy engine |
-| APISIX | 9080 | API gateway |
-| etcd | 2379 | Service discovery |
-| Grafana | 3000 | Dashboards |
-| Prometheus | 9090 | Metrics |
-| Loki | 3100 | Logs |
-| Tempo | 3200 | Traces |
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## Network
+## 📄 License
 
-All services communicate on the `thaliumx-net` Docker network (172.28.0.0/16).
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Environment Variables
+## 🙏 Acknowledgments
 
-Configuration is managed through `docker/.env`. Key variables:
+This platform integrates the following open-source projects:
+- [PostgreSQL](https://www.postgresql.org/) / [TimescaleDB](https://www.timescale.com/)
+- [Apache Kafka](https://kafka.apache.org/)
+- [Keycloak](https://www.keycloak.org/)
+- [HashiCorp Vault](https://www.vaultproject.io/)
+- [Apache APISIX](https://apisix.apache.org/)
+- [Prometheus](https://prometheus.io/) / [Grafana](https://grafana.com/)
+- [Wazuh](https://wazuh.com/)
+- [Ballerine](https://www.ballerine.com/)
+- [BlinkFinance](https://github.com/blnkfinance/blnk)
 
-- `POSTGRES_PASSWORD` - PostgreSQL password
-- `REDIS_PASSWORD` - Redis password
-- `KEYCLOAK_ADMIN_PASSWORD` - Keycloak admin password
-- `VAULT_DEV_ROOT_TOKEN_ID` - Vault root token
-- `GRAFANA_ADMIN_PASSWORD` - Grafana admin password
+---
 
-⚠️ **Important:** Change all default passwords before deploying to production!
-
-## Development
-
-### Adding a New Workspace Package
-
-1. Create the package directory
-2. Add a `package.json` with the package name
-3. The package will be automatically included via `pnpm-workspace.yaml`
-
-### Installing Dependencies
-
-```bash
-# Install to root
-pnpm add -w <package>
-
-# Install to specific workspace
-pnpm add <package> --filter <workspace-name>
-
-# Install dev dependency
-pnpm add -D <package> --filter <workspace-name>
-```
-
-## License
-
-UNLICENSED - Private repository
+**Built with ❤️ for the fintech community**
