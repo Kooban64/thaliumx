@@ -1,0 +1,130 @@
+# Thaliumx Fintech
+# ================
+# Ballerine (KYC/KYB workflow), BlinkFinance (placeholder)
+
+services:
+  # Ballerine PostgreSQL with plv8 extension
+  ballerine-postgres:
+    image: sibedge/postgres-plv8:15.3-3.1.7
+    container_name: thaliumx-ballerine-postgres
+    hostname: thaliumx-ballerine-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ballerine
+      POSTGRES_PASSWORD: ThaliumX2025
+      POSTGRES_DB: ballerine
+    ports:
+      - "5433:5432"
+    volumes:
+      - ballerine_postgres_data:/var/lib/postgresql/data
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ballerine -d ballerine"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ballerine Workflow Service (Backend API)
+  ballerine-workflow:
+    image: ghcr.io/ballerine-io/workflows-service:latest
+    container_name: thaliumx-ballerine-workflow
+    hostname: thaliumx-ballerine-workflow
+    restart: unless-stopped
+    environment:
+      # Vault configuration for secrets
+      VAULT_ADDR: http://thaliumx-vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:-<VAULT_TOKEN>}
+      VAULT_SECRET_PATH: kv/data/fintech/ballerine
+      # Database configuration (DB_URL is built from Vault secrets in entrypoint)
+      DB_USER: ballerine
+      DB_HOST: thaliumx-ballerine-postgres
+      DB_PORT: "5432"
+      DB_NAME: ballerine
+      # Non-secret configuration
+      NODE_ENV: production
+      LOG_LEVEL: info
+      PORT: "3000"
+      COMPOSE_PROJECT_NAME: thaliumx
+      # Required Ballerine configuration
+      ENVIRONMENT_NAME: production
+      BACKOFFICE_CORS_ORIGIN: http://localhost:3004
+      WORKFLOW_DASHBOARD_CORS_ORIGIN: http://localhost:3004
+      HEADLESS_EXAMPLE_CORS_ORIGIN: http://localhost:3004
+      KYB_EXAMPLE_CORS_ORIGIN: http://localhost:3004
+      UNIFIED_API_URL: http://thaliumx-ballerine-workflow:3000
+      APP_API_URL: http://localhost:3003
+      # JWT configuration
+      JWT_EXPIRATION: 1d
+      # Mail adapter (use log for development)
+      MAIL_ADAPTER: log
+      # BCRYPT_SALT is fetched from Vault as a full bcrypt salt string ($2b$12$...)
+    volumes:
+      - ./scripts/ballerine-entrypoint.sh:/entrypoint.sh:ro
+      - ./scripts/vault-secrets.js:/vault-secrets.js:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    command: ["dumb-init", "npm", "run", "prod"]
+    ports:
+      - "${BALLERINE_API_PORT:-3003}:3000"
+    networks:
+      - thaliumx-net
+    depends_on:
+      ballerine-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:3000/api/v1/_health/live', (res) => { process.exit(res.statusCode === 204 || res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Ballerine Backoffice (Admin UI)
+  ballerine-backoffice:
+    image: ghcr.io/ballerine-io/backoffice:latest
+    container_name: thaliumx-ballerine-backoffice
+    hostname: thaliumx-ballerine-backoffice
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3003
+      VITE_AUTH_ENABLED: "false"
+    ports:
+      - "${BALLERINE_BACKOFFICE_PORT:-3004}:80"
+    networks:
+      - thaliumx-net
+    depends_on:
+      ballerine-workflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # BlinkFinance Placeholder Service
+  # This is a placeholder that returns health checks
+  # Replace with actual BlinkFinance implementation when ready
+  blinkfinance:
+    image: nginx:alpine
+    container_name: thaliumx-blinkfinance
+    hostname: thaliumx-blinkfinance
+    restart: unless-stopped
+    ports:
+      - "${BLINKFINANCE_PORT:-8005}:80"
+    volumes:
+      - ./config/blinkfinance/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/blinkfinance/html:/usr/share/nginx/html:ro
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ballerine_postgres_data:
+    name: thaliumx-ballerine-postgres-data
+
+networks:
+  thaliumx-net:
+    external: true

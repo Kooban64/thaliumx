@@ -1,0 +1,50 @@
+# Thaliumx Core
+# =============
+# Frontend & Backend placeholder services
+# Replace with actual implementations when ready
+
+services:
+  # Frontend Placeholder Service
+  # This is a placeholder that serves a status page
+  # Replace with actual frontend implementation when ready
+  frontend:
+    image: nginx:alpine
+    container_name: thaliumx-frontend
+    hostname: thaliumx-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    volumes:
+      - ./config/frontend/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/frontend/html:/usr/share/nginx/html:ro
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Placeholder Service
+  # This is a placeholder API that returns health checks
+  # Replace with actual backend implementation when ready
+  backend:
+    image: nginx:alpine
+    container_name: thaliumx-backend
+    hostname: thaliumx-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./config/backend/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  thaliumx-net:
+    external: true

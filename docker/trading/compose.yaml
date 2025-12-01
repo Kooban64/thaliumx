@@ -1,0 +1,94 @@
+# Thaliumx Trading
+# ================
+# Dingir Exchange, Liquibook, QuantLib
+
+services:
+  dingir:
+    image: thaliumx/dingir:latest
+    container_name: thaliumx-dingir
+    hostname: thaliumx-dingir
+    restart: unless-stopped
+    build:
+      context: ../../dingir
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-thaliumx}:${POSTGRES_PASSWORD:-changeme}@thaliumx-postgres:5432/${POSTGRES_DB:-thaliumx}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@thaliumx-redis:6379
+      KAFKA_BROKERS: thaliumx-kafka:9092
+    ports:
+      - "${DINGIR_PORT:-8001}:8001"
+    volumes:
+      - dingir_data:/app/data
+      - dingir_logs:/app/logs
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  liquibook:
+    image: thaliumx/liquibook:latest
+    container_name: thaliumx-liquibook
+    hostname: thaliumx-liquibook
+    restart: unless-stopped
+    build:
+      context: ../../liquibook
+      dockerfile: Dockerfile
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@thaliumx-redis:6379
+      KAFKA_BROKERS: thaliumx-kafka:9092
+    ports:
+      - "${LIQUIBOOK_PORT:-8002}:8002"
+    volumes:
+      - liquibook_data:/app/data
+      - liquibook_logs:/app/logs
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  quantlib:
+    image: thaliumx/quantlib:latest
+    container_name: thaliumx-quantlib
+    hostname: thaliumx-quantlib
+    restart: unless-stopped
+    build:
+      context: ../../quantlib
+      dockerfile: Dockerfile
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@thaliumx-redis:6379
+    ports:
+      - "${QUANTLIB_PORT:-8003}:8003"
+    volumes:
+      - quantlib_data:/app/data
+      - quantlib_logs:/app/logs
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dingir_data:
+    name: thaliumx-dingir-data
+  dingir_logs:
+    name: thaliumx-dingir-logs
+  liquibook_data:
+    name: thaliumx-liquibook-data
+  liquibook_logs:
+    name: thaliumx-liquibook-logs
+  quantlib_data:
+    name: thaliumx-quantlib-data
+  quantlib_logs:
+    name: thaliumx-quantlib-logs
+
+networks:
+  thaliumx-net:
+    external: true

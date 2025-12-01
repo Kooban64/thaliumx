@@ -1,0 +1,38 @@
+# Thaliumx OPA (Open Policy Agent)
+# =================================
+# Policy-based authorization service
+
+services:
+  opa:
+    image: openpolicyagent/opa:0.64.0
+    container_name: thaliumx-opa
+    hostname: thaliumx-opa
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--log-level=info"
+      - "--log-format=json"
+      - "--set=decision_logs.console=true"
+      - "/policies"
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./policies:/policies:ro
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "/opa", "eval", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.thaliumx.service=opa"
+      - "com.thaliumx.component=security"
+      - "com.thaliumx.description=Open Policy Agent for Authorization"
+
+networks:
+  thaliumx-net:
+    external: true

@@ -1,0 +1,43 @@
+# Thaliumx Redis
+# ==============
+# Redis cache and message queue
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: thaliumx-redis
+    hostname: thaliumx-redis
+    restart: unless-stopped
+    # Password is stored in Vault at: kv/thaliumx/cache/redis
+    # For initial setup, we use the standardized password
+    # In production, services should fetch from Vault
+    command: >
+      redis-server
+      --requirepass ThaliumX2025
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+      --timeout 0
+      --loglevel notice
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "ThaliumX2025", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  redis_data:
+    name: thaliumx-redis-data
+
+networks:
+  thaliumx-net:
+    external: true

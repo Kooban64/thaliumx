@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment files with secrets
+.env.local
+.env.*.local
+*.env.secret
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build outputs
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Docker volumes (data is stored in named volumes)
+# Don't ignore compose files or configs
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Secrets (if any local files)
+*.pem
+*.key
+*.crt
+!docker/*/config/*.crt
+!docker/*/config/*.key

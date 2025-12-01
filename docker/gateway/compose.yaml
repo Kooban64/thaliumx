@@ -1,0 +1,61 @@
+# Thaliumx Gateway
+# ================
+# APISIX & etcd
+
+services:
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: thaliumx-etcd
+    hostname: thaliumx-etcd
+    restart: unless-stopped
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: http://thaliumx-etcd:2379
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+    ports:
+      - "${ETCD_PORT:-2379}:2379"
+    volumes:
+      - etcd_data:/bitnami/etcd
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  apisix:
+    image: apache/apisix:3.9.0-debian
+    container_name: thaliumx-apisix
+    hostname: thaliumx-apisix
+    restart: unless-stopped
+    environment:
+      APISIX_STAND_ALONE: "false"
+    ports:
+      - "${APISIX_PORT:-9080}:9080"
+      - "${APISIX_ADMIN_PORT:-9180}:9180"
+      - "9443:9443"
+    volumes:
+      - ./config/apisix.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - apisix_logs:/usr/local/apisix/logs
+    networks:
+      - thaliumx-net
+    depends_on:
+      etcd:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/apisix/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  etcd_data:
+    name: thaliumx-etcd-data
+  apisix_logs:
+    name: thaliumx-apisix-logs
+
+networks:
+  thaliumx-net:
+    external: true
