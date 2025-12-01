@@ -35,6 +35,10 @@ include:
   - path: observability/compose.yaml
     project_directory: observability
 
+  # Security Monitoring - SIEM/XDR
+  - path: wazuh/compose.yaml
+    project_directory: wazuh
+
 networks:
   thaliumx-net:
     name: thaliumx-net
