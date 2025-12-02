@@ -1,6 +1,6 @@
 # Core Services Overview
 
-This document describes all the core backbone services in the Thaliumx platform and the value they provide.
+This document describes all the core backbone services in the ThaliumX platform and the value they provide.
 
 ## Architecture Overview
 
@@ -505,6 +505,80 @@ This document describes all the core backbone services in the Thaliumx platform 
 
 ---
 
+## Core Application Layer
+
+### Frontend (Next.js)
+**Port**: 3001 | **Container**: `thaliumx-frontend`
+
+**Purpose**: Modern web application for user interaction.
+
+**Value to Platform**:
+- **Server-Side Rendering**: Fast initial page loads with SEO benefits
+- **React Server Components**: Efficient data fetching and rendering
+- **Keycloak Integration**: Secure authentication via OAuth 2.0/OIDC
+- **Real-time Updates**: WebSocket support for live data
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+
+**Technology Stack**:
+- Next.js 15 with App Router
+- React 19
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+
+**Use Cases**:
+- User authentication and registration
+- Trading dashboard
+- Portfolio management
+- Admin interfaces
+- KYC/KYB workflows
+
+---
+
+### Backend (Express.js)
+**Port**: 3002 | **Container**: `thaliumx-backend`
+
+**Purpose**: RESTful API server for business logic and data access.
+
+**Value to Platform**:
+- **RESTful API**: Clean, documented API endpoints
+- **Vault Integration**: Secure secrets management
+- **OpenTelemetry**: Full observability with traces and metrics
+- **Database Migrations**: Automated schema management
+- **Health Checks**: Kubernetes-ready health endpoints
+
+**Technology Stack**:
+- Node.js 20
+- Express.js
+- TypeScript
+- Sequelize ORM
+- Winston logging
+
+**Security Features**:
+- Non-root container execution (UID 1001)
+- Read-only filesystem
+- Dropped Linux capabilities
+- No privilege escalation
+- dumb-init for signal handling
+
+**API Endpoints**:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/docs` | GET | API documentation |
+| `/api/auth/*` | * | Authentication |
+| `/api/users/*` | * | User management |
+| `/api/trading/*` | * | Trading operations |
+
+**Use Cases**:
+- User authentication and authorization
+- Trading order management
+- Portfolio calculations
+- KYC/KYB processing
+- Audit logging
+
+---
+
 ## Fintech Layer Services
 
 ### Ballerine Workflow Engine
@@ -592,7 +666,7 @@ This document describes all the core backbone services in the Thaliumx platform 
 | Wazuh Manager | 1514/55000 | TCP | SIEM Engine |
 | Wazuh Dashboard | 5601 | HTTPS | SIEM UI |
 | Ballerine Workflow | 3003 | HTTP | KYC Workflow |
-| Ballerine Backoffice | 3001 | HTTP | KYC Admin |
+| Ballerine Backoffice | 3004 | HTTP | KYC Admin |
 | BlinkFinance | 5001 | HTTP | Ledger |
-| Frontend | 3002 | HTTP | Web UI |
-| Backend | 4000 | HTTP | API |
+| **Frontend** | 3001 | HTTP | Web UI (Next.js) |
+| **Backend** | 3002 | HTTP | REST API (Express) |

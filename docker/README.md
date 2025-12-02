@@ -1,302 +1,481 @@
-# Thaliumx Docker Orchestration
+# ThaliumX Docker Configuration
 
-This directory contains the Docker Compose configuration for the Thaliumx platform.
+This directory contains all Docker Compose configurations and application source code for the ThaliumX platform.
 
-## Current Status
+## Table of Contents
 
-**28 containers running** - Full infrastructure operational with **ALL healthchecks passing**!
+1. [Directory Structure](#directory-structure)
+2. [Quick Start](#quick-start)
+3. [Service Groups](#service-groups)
+4. [Building Images](#building-images)
+5. [Development Workflow](#development-workflow)
+6. [Configuration](#configuration)
+7. [Troubleshooting](#troubleshooting)
 
-| Category | Services | Count | Status |
-|----------|----------|-------|--------|
-| Security | Vault, Keycloak, OPA | 3 | ✅ All Healthy |
-| Databases | PostgreSQL (TimescaleDB), MongoDB, Redis | 3 | ✅ All Healthy |
-| Search | Typesense | 1 | ✅ Healthy |
-| Messaging | Kafka + KRaft, Kafka UI | 2 | ✅ All Healthy |
-| Gateway | APISIX, etcd, APISIX Dashboard | 3 | ✅ All Healthy |
-| Observability | Prometheus, Grafana, Loki, Tempo, Promtail, otel-collector, blackbox-exporter, cAdvisor, postgres-exporter, redis-exporter | 10 | ✅ All Healthy |
-| Fintech | Ballerine (workflow, backoffice, postgres), BlinkFinance | 4 | ✅ All Healthy |
-| Core | Frontend, Backend (placeholders) | 2 | ✅ All Healthy |
-| Trading | Dingir, Liquibook, QuantLib | 0 | ⏳ Pending (needs custom development) |
-| **Total** | | **28** | **✅ All Healthy** |
+---
 
 ## Directory Structure
 
 ```
 docker/
-├── compose.yaml                    # Master orchestrator file
-├── .env                            # Global environment variables
-├── Makefile                        # Convenience commands
-├── README.md                       # This file
+├── compose.yaml              # Master orchestrator (includes all services)
+├── package.json              # pnpm workspace root
+├── pnpm-workspace.yaml       # Workspace configuration
 │
-├── core/                           # Frontend & Backend services
+├── shared/                   # Shared TypeScript package
+│   ├── src/
+│   │   ├── index.ts         # Main exports
+│   │   └── types/           # Type definitions
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── frontend/                 # Next.js frontend application
+│   ├── src/
+│   │   ├── app/             # Next.js App Router
+│   │   ├── components/      # React components
+│   │   └── lib/             # Utilities
+│   ├── Dockerfile           # Multi-stage build
+│   └── package.json
+│
+├── backend/                  # Express.js backend API
+│   ├── src/
+│   │   ├── routes/          # API routes
+│   │   ├── services/        # Business logic
+│   │   ├── middleware/      # Express middleware
+│   │   └── migrations/      # Database migrations
+│   ├── Dockerfile           # Multi-stage build
+│   └── package.json
+│
+├── core/                     # Core services compose
+│   ├── compose.yaml         # Frontend + Backend
+│   ├── core.env             # Environment variables
+│   └── secrets/             # Local secrets (gitignored)
+│
+├── databases/                # Data layer
+│   └── compose.yaml         # PostgreSQL, MongoDB, Redis
+│
+├── messaging/                # Messaging layer
+│   └── compose.yaml         # Kafka, Schema Registry
+│
+├── security/                 # Security layer
+│   └── compose.yaml         # Keycloak, Vault, OPA
+│
+├── gateway/                  # Gateway layer
+│   └── compose.yaml         # APISIX, etcd
+│
+├── observability/            # Observability layer
+│   └── compose.yaml         # Prometheus, Grafana, Loki, Tempo
+│
+├── wazuh/                    # SIEM
 │   ├── compose.yaml
-│   └── config/
-│       ├── frontend/
-│       │   ├── nginx.conf
-│       │   └── html/
-│       └── backend/
-│           └── nginx.conf
+│   └── scripts/             # Certificate generation
 │
-├── trading/                        # Exchange, Liquibook, QuantLib
-│   └── compose.yaml
+├── fintech/                  # Fintech services
+│   └── compose.yaml         # Ballerine, BlinkFinance
 │
-├── gateway/                        # APISIX & etcd
-│   ├── compose.yaml
-│   └── config/
-│       └── apisix.yaml
+├── trading/                  # Trading services
+│   ├── compose.yaml         # Dingir, Liquibook, QuantLib
+│   └── dingir/              # Dingir configuration
 │
-├── security/                       # Keycloak, Vault, OPA
-│   ├── compose.yaml
-│   └── policies/
-│
-├── databases/                      # PostgreSQL, MongoDB, Redis, Typesense
-│   ├── compose.yaml
-│   └── init/
-│
-├── messaging/                      # Kafka with KRaft
-│   └── compose.yaml
-│
-├── fintech/                        # Ballerine, BlinkFinance
-│   ├── compose.yaml
-│   ├── config/
-│   │   ├── ballerine.env
-│   │   └── blinkfinance/
-│   └── scripts/
-│       ├── ballerine-entrypoint.sh
-│       └── vault-secrets.js
-│
-├── vault/                          # Vault configuration
-│   ├── compose.yaml
-│   ├── config/
-│   ├── policies/
-│   └── scripts/
-│
-├── redis/                          # Redis configuration
-│   └── compose.yaml
-│
-├── postgres/                       # PostgreSQL configuration
-│   ├── compose.yaml
-│   └── init/
-│
-├── keycloak/                       # Keycloak configuration
-│   └── compose.yaml
-│
-├── mongodb/                        # MongoDB configuration
-│   ├── compose.yaml
-│   └── init/
-│
-├── kafka/                          # Kafka configuration
-│   └── compose.yaml
-│
-├── apisix/                         # APISIX configuration
-│   ├── compose.yaml
-│   └── config/
-│
-├── opa/                            # OPA configuration
-│   ├── compose.yaml
-│   └── policies/
-│
-├── typesense/                      # Typesense configuration
-│   └── compose.yaml
-│
-└── observability/                  # Full monitoring stack
-    ├── compose.yaml
-    └── config/
-        ├── prometheus.yml
-        ├── loki.yml
-        ├── promtail.yml
-        ├── tempo.yml
-        ├── otel-collector.yml
-        ├── blackbox.yml
-        └── grafana/
-            ├── dashboards/
-            └── provisioning/
+└── typesense/                # Search engine
+    └── compose.yaml
 ```
 
-## Network
-
-All services run on the `thaliumx-net` bridge network (subnet: 172.28.0.0/16).
-
-## Container Naming
-
-All containers are prefixed with `thaliumx-` for easy identification.
+---
 
 ## Quick Start
 
-### Start Services Individually (Recommended)
+### Prerequisites
+
+- Docker 24.0+
+- Docker Compose v2.20+
+- 16GB+ RAM recommended
+
+### Start All Services
 
 ```bash
-# 1. Create network first
+# Create network
 docker network create --driver bridge --subnet 172.28.0.0/16 thaliumx-net
 
-# 2. Start services in order
-cd docker/vault && docker compose up -d
-cd docker/redis && docker compose up -d
-cd docker/postgres && docker compose up -d
-cd docker/keycloak && docker compose up -d
-cd docker/mongodb && docker compose up -d
-cd docker/kafka && docker compose up -d
-cd docker/apisix && docker compose up -d
-cd docker/opa && docker compose up -d
-cd docker/typesense && docker compose up -d
-cd docker/observability && docker compose up -d
-cd docker/fintech && docker compose up -d
-cd docker/core && docker compose up -d
+# Generate Wazuh certificates
+cd wazuh && chmod +x scripts/generate-certs.sh && ./scripts/generate-certs.sh && cd ..
+
+# Start all services
+docker compose up -d
+
+# Check status
+docker ps --filter name=thaliumx --format "table {{.Names}}\t{{.Status}}"
 ```
 
-### Using Make
+### Start Individual Service Groups
 
 ```bash
-# Show all available commands
-make help
+# Start only databases
+cd databases && docker compose up -d
 
-# Create network and start all services
-make up
+# Start only core apps
+cd core && docker compose up -d
 
-# View running containers
-make ps
-
-# View logs
-make logs
-
-# Stop all services
-make down
+# Start only trading
+cd trading && docker compose up -d
 ```
 
-## Service Ports
+---
 
-| Service | Port | Description |
-|---------|------|-------------|
-| **Security** | | |
-| Vault | 8200 | Secrets management |
-| Keycloak | 8080 | Identity & access management |
-| OPA | 8181 | Policy engine |
-| **Databases** | | |
-| PostgreSQL | 5432 | Primary database (TimescaleDB) |
-| MongoDB | 27017 | Document database |
-| Redis | 6379 | Cache & session store |
-| Typesense | 8108 | Search engine |
-| **Messaging** | | |
-| Kafka | 9092 | Event streaming |
-| Kafka UI | 8082 | Kafka management UI |
-| **Gateway** | | |
-| APISIX | 9080 | API Gateway |
-| APISIX Admin | 9180 | APISIX Admin API |
-| APISIX Dashboard | 9000 | APISIX Dashboard UI |
-| etcd | 2379 | Service discovery |
-| **Observability** | | |
-| Prometheus | 9090 | Metrics collection |
-| Grafana | 3000 | Dashboards & visualization |
-| Loki | 3100 | Log aggregation |
-| Tempo | 3200 | Distributed tracing |
-| otel-collector | 4317, 4318 | OpenTelemetry collector |
-| **Fintech** | | |
-| Ballerine API | 3003 | KYC/KYB workflow service |
-| Ballerine Backoffice | 3004 | Ballerine admin UI |
-| Ballerine PostgreSQL | 5433 | Ballerine database |
-| BlinkFinance | 8005 | Financial services (placeholder) |
-| **Core** | | |
-| Frontend | 3001 | Web application (placeholder) |
-| Backend | 8000 | API server (placeholder) |
+## Service Groups
 
-## Credentials
+### Core Applications (`core/`)
 
-All services use the standardized password: `ThaliumX2025`
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| frontend | thaliumx/frontend | 3001 | Next.js web application |
+| backend | thaliumx/backend | 3002 | Express.js REST API |
 
-| Service | Username | Password |
-|---------|----------|----------|
-| PostgreSQL | thaliumx | ThaliumX2025 |
-| MongoDB | thaliumx | ThaliumX2025 |
-| Redis | - | ThaliumX2025 |
-| Keycloak | admin | ThaliumX2025 |
-| Grafana | admin | ThaliumX2025 |
-| Vault | - | Token: <VAULT_TOKEN> |
-| Typesense | - | API Key: ThaliumX2025 |
+**Build:**
+```bash
+cd core
+docker compose build frontend backend
+```
 
-**⚠️ Important:** Change all passwords before deploying to production!
+### Databases (`databases/`)
 
-## Vault Secrets
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| postgres | timescale/timescaledb | 5432 | PostgreSQL with TimescaleDB |
+| mongodb | mongo:7 | 27017 | Document database |
+| redis | redis:7-alpine | 6379 | Cache and pub/sub |
 
-Secrets are stored in HashiCorp Vault at the following paths:
+### Messaging (`messaging/`)
 
-| Path | Description |
-|------|-------------|
-| `kv/databases/postgres` | PostgreSQL credentials |
-| `kv/databases/mongodb` | MongoDB credentials |
-| `kv/databases/redis` | Redis credentials |
-| `kv/security/keycloak` | Keycloak credentials |
-| `kv/fintech/ballerine` | Ballerine secrets (bcrypt salt, JWT keys, etc.) |
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| kafka | confluentinc/cp-kafka | 9092 | Event streaming |
+| schema-registry | confluentinc/cp-schema-registry | 8085 | Schema management |
+| kafka-ui | provectuslabs/kafka-ui | 8081 | Kafka management UI |
 
-## Health Checks
+### Security (`security/`)
 
-All services include health checks. View service health:
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| keycloak | quay.io/keycloak/keycloak | 8080 | Identity management |
+| vault | hashicorp/vault | 8200 | Secrets management |
+| opa | openpolicyagent/opa | 8181 | Policy engine |
+
+### Gateway (`gateway/`)
+
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| apisix | apache/apisix | 9080 | API gateway |
+| etcd | bitnami/etcd | 2379 | Configuration store |
+| apisix-dashboard | apache/apisix-dashboard | 9000 | Gateway UI |
+
+### Observability (`observability/`)
+
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| prometheus | prom/prometheus | 9090 | Metrics collection |
+| grafana | grafana/grafana | 3000 | Dashboards |
+| loki | grafana/loki | 3100 | Log aggregation |
+| tempo | grafana/tempo | 3200 | Distributed tracing |
+| otel-collector | otel/opentelemetry-collector | 4317/4318 | Telemetry collection |
+
+### Trading (`trading/`)
+
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| dingir-matchengine | thaliumx/dingir-matchengine | 50051 | Matching engine |
+| dingir-restapi | thaliumx/dingir-restapi | 50053 | REST API |
+| liquibook | thaliumx/liquibook | 8083 | Order book |
+| quantlib | thaliumx/quantlib | 3010 | Financial analytics |
+
+---
+
+## Building Images
+
+### Build All Custom Images
 
 ```bash
-# Check all container health
-docker ps --format "table {{.Names}}\t{{.Status}}" | grep thaliumx
+# Build core applications
+cd core && docker compose build --no-cache
 
-# Check specific service
-docker inspect thaliumx-<service-name> | jq '.[0].State.Health'
+# Build trading services
+cd trading && docker compose build --no-cache
 ```
 
-## Accessing Services
+### Build Individual Images
 
-| Service | URL | Notes |
-|---------|-----|-------|
-| Grafana | http://localhost:3000 | Dashboards & monitoring |
-| Keycloak | http://localhost:8080 | Identity management |
-| Prometheus | http://localhost:9090 | Metrics |
-| APISIX Dashboard | http://localhost:9000 | API Gateway management |
-| Vault | http://localhost:8200 | Secrets management |
-| Kafka UI | http://localhost:8082 | Kafka management |
-| Ballerine Backoffice | http://localhost:3004 | KYC/KYB admin |
-| Frontend | http://localhost:3001 | Web application |
-| Backend API | http://localhost:8000 | REST API |
+```bash
+# Frontend
+docker build -t thaliumx/frontend:latest -f frontend/Dockerfile .
+
+# Backend
+docker build -t thaliumx/backend:latest -f backend/Dockerfile .
+```
+
+### Multi-Architecture Builds
+
+```bash
+# Build for multiple platforms
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t thaliumx/backend:latest \
+  -f backend/Dockerfile \
+  --push .
+```
+
+---
+
+## Development Workflow
+
+### Local Development with pnpm
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run in development mode
+pnpm dev
+
+# Run tests
+pnpm test
+
+# Lint code
+pnpm lint
+```
+
+### Workspace Commands
+
+```bash
+# Run command in specific package
+pnpm --filter @thaliumx/frontend dev
+pnpm --filter @thaliumx/backend build
+
+# Run command in all packages
+pnpm -r build
+```
+
+### Hot Reload Development
+
+For development with hot reload, mount source code as volumes:
+
+```yaml
+# docker-compose.override.yaml
+services:
+  backend:
+    volumes:
+      - ./backend/src:/app/src
+    command: ["pnpm", "dev"]
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Each service group has its own environment file:
+
+| File | Purpose |
+|------|---------|
+| `core/core.env` | Core application settings |
+| `trading/trading.env` | Trading service settings |
+| `databases/databases.env` | Database credentials |
+
+### Core Environment Variables
+
+```bash
+# core/core.env
+NODE_ENV=production
+PORT=3002
+
+# Database
+DB_HOST=thaliumx-postgres
+DB_PORT=5432
+DB_NAME=thaliumx
+DB_USER=thaliumx
+DB_PASSWORD=ThaliumX2025
+
+# Redis
+REDIS_HOST=thaliumx-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=ThaliumX2025
+
+# Vault
+VAULT_ADDR=http://thaliumx-vault:8200
+VAULT_TOKEN=<VAULT_TOKEN>
+
+# Keycloak
+KEYCLOAK_URL=http://thaliumx-keycloak:8080
+KEYCLOAK_REALM=thaliumx
+KEYCLOAK_CLIENT_ID=thaliumx-backend
+```
+
+### Security Configuration
+
+Security settings in `core/compose.yaml`:
+
+```yaml
+services:
+  backend:
+    # Run as non-root
+    user: "1001:1001"
+    
+    # Read-only filesystem
+    read_only: true
+    
+    # Drop all capabilities
+    cap_drop:
+      - ALL
+    
+    # Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+    
+    # Writable directories via tmpfs
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev,size=100M,uid=1001,gid=1001
+      - /app/logs:noexec,nosuid,nodev,size=100M,uid=1001,gid=1001
+```
+
+---
 
 ## Troubleshooting
 
-### Network Issues
+### Common Issues
+
+#### Container Won't Start
+
+```bash
+# Check logs
+docker logs thaliumx-backend
+
+# Check container status
+docker inspect thaliumx-backend
+
+# Check network connectivity
+docker exec thaliumx-backend ping thaliumx-postgres
+```
+
+#### Permission Denied Errors
+
+If you see permission errors with tmpfs mounts:
+
+```yaml
+# Ensure uid/gid match the container user
+tmpfs:
+  - /app/logs:noexec,nosuid,nodev,size=100M,uid=1001,gid=1001,mode=0770
+```
+
+#### Build Failures
+
+```bash
+# Clean build cache
+docker builder prune -f
+
+# Build with no cache
+docker compose build --no-cache
+
+# Check disk space
+df -h
+```
+
+#### Network Issues
+
 ```bash
 # Recreate network
 docker network rm thaliumx-net
 docker network create --driver bridge --subnet 172.28.0.0/16 thaliumx-net
+
+# Verify network
+docker network inspect thaliumx-net
 ```
 
-### Container Won't Start
+### Health Checks
+
 ```bash
-# Check logs
-docker logs thaliumx-<service-name>
+# Check all service health
+docker ps --filter name=thaliumx --format "table {{.Names}}\t{{.Status}}"
 
-# Check health
-docker inspect thaliumx-<service-name> | jq '.[0].State.Health'
+# Test specific endpoints
+curl http://localhost:3002/health
+curl http://localhost:3001/api/health
 ```
 
-### Vault Issues
+### Logs
+
 ```bash
-# Check Vault status
-docker exec thaliumx-vault vault status
+# View logs for a service
+docker logs -f thaliumx-backend
 
-# List secrets
-docker exec thaliumx-vault vault kv list kv/
+# View logs for all services
+docker compose logs -f
+
+# View logs with timestamps
+docker logs -t thaliumx-backend
 ```
 
-### Reset Everything
+### Resource Usage
+
 ```bash
-# Stop all containers
-docker ps -q --filter "name=thaliumx" | xargs -r docker stop
-docker ps -aq --filter "name=thaliumx" | xargs -r docker rm
+# Check resource usage
+docker stats --no-stream
 
-# Remove volumes (WARNING: data loss!)
-docker volume ls -q --filter "name=thaliumx" | xargs -r docker volume rm
-
-# Remove network
-docker network rm thaliumx-net
+# Check disk usage
+docker system df
 ```
 
-## Future Enhancements
+---
 
-- [ ] Trading services (Dingir, Liquibook, QuantLib) - requires custom development
-- [ ] Sequelize setup for schema management
-- [ ] Citus for multi-tenancy
-- [ ] BlinkFinance actual implementation (currently placeholder)
-- [ ] Frontend/Backend actual implementation (currently placeholders)
+## Maintenance
+
+### Cleanup
+
+```bash
+# Remove stopped containers
+docker container prune
+
+# Remove unused images
+docker image prune
+
+# Remove unused volumes (CAUTION: deletes data)
+docker volume prune
+
+# Full cleanup
+docker system prune -a --volumes
+```
+
+### Backup
+
+```bash
+# Backup PostgreSQL
+docker exec thaliumx-postgres pg_dump -U thaliumx thaliumx > backup.sql
+
+# Backup volumes
+docker run --rm -v thaliumx-postgres-data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/postgres-backup.tar.gz -C /data .
+```
+
+### Updates
+
+```bash
+# Pull latest images
+docker compose pull
+
+# Rebuild custom images
+docker compose build --no-cache
+
+# Restart with new images
+docker compose up -d
+```
+
+---
+
+## References
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [pnpm Workspaces](https://pnpm.io/workspaces)
+- [Next.js Docker](https://nextjs.org/docs/deployment#docker-image)
+- [Node.js Docker Best Practices](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md)

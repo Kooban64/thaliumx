@@ -1,6 +1,6 @@
-# Thaliumx Platform Installation Guide
+# ThaliumX Platform Installation Guide
 
-This guide walks you through setting up the complete Thaliumx platform from scratch.
+This guide walks you through setting up the complete ThaliumX platform from scratch.
 
 ## Table of Contents
 
@@ -10,7 +10,8 @@ This guide walks you through setting up the complete Thaliumx platform from scra
 4. [Service Startup Order](#service-startup-order)
 5. [Verification](#verification)
 6. [Access Points](#access-points)
-7. [Troubleshooting](#troubleshooting)
+7. [Security Configuration](#security-configuration)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -211,7 +212,14 @@ docker compose up -d
 
 ```bash
 cd ../core
+docker compose build  # Build frontend and backend images
 docker compose up -d
+```
+
+Wait for services to be healthy:
+```bash
+docker ps --filter name=thaliumx-frontend --format "{{.Status}}"
+docker ps --filter name=thaliumx-backend --format "{{.Status}}"
 ```
 
 ### Step 11: Start Typesense
@@ -266,9 +274,56 @@ For proper dependency resolution, start services in this order:
    └── BlinkFinance
 9. Typesense
 10. Core Layer
-    ├── Frontend
-    └── Backend
+    ├── Backend (depends on PostgreSQL, Redis, Kafka, Vault)
+    └── Frontend (depends on Backend)
 ```
+
+---
+
+## Security Configuration
+
+### Container Security
+
+All core application containers run with security hardening:
+
+```yaml
+services:
+  backend:
+    user: "1001:1001"           # Non-root user
+    read_only: true             # Read-only filesystem
+    cap_drop:
+      - ALL                     # Drop all capabilities
+    security_opt:
+      - no-new-privileges:true  # Prevent privilege escalation
+```
+
+### Secrets Management
+
+Secrets are managed via HashiCorp Vault:
+
+```bash
+# Access Vault UI
+open http://localhost:8200
+
+# Login with token
+Token: <VAULT_TOKEN>
+
+# Store a secret
+vault kv put secret/thaliumx/database username=thaliumx password=ThaliumX2025
+```
+
+### Environment Variables
+
+Core services use these environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VAULT_ADDR` | Vault server address | http://thaliumx-vault:8200 |
+| `VAULT_TOKEN` | Vault authentication token | (required) |
+| `DB_HOST` | PostgreSQL host | thaliumx-postgres |
+| `DB_PASSWORD` | Database password | ThaliumX2025 |
+| `REDIS_PASSWORD` | Redis password | ThaliumX2025 |
+| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret | ThaliumX2025 |
 
 ---
 
@@ -341,13 +396,15 @@ curl -s http://localhost:5001/health
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
+| **Frontend** | http://localhost:3001 | - |
+| **Backend API** | http://localhost:3002 | - |
 | Grafana | http://localhost:3000 | admin / ThaliumX2025 |
 | Keycloak | http://localhost:8080 | admin / ThaliumX2025 |
 | Vault | http://localhost:8200 | Token: <VAULT_TOKEN> |
 | APISIX Dashboard | http://localhost:9000 | admin / ThaliumX2025 |
 | Kafka UI | http://localhost:8081 | - |
 | Wazuh Dashboard | https://localhost:5601 | admin / SecretPassword |
-| Ballerine Backoffice | http://localhost:3001 | - |
+| Ballerine Backoffice | http://localhost:3004 | - |
 | Prometheus | http://localhost:9090 | - |
 
 ### API Endpoints
@@ -364,13 +421,24 @@ curl -s http://localhost:5001/health
 | OpenTelemetry | http://localhost:4318 | OTLP HTTP receiver |
 | OpenTelemetry | grpc://localhost:4317 | OTLP gRPC receiver |
 
+### Backend API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/docs` | GET | API documentation |
+| `/api/auth/login` | POST | User login |
+| `/api/auth/register` | POST | User registration |
+| `/api/users` | GET | List users |
+| `/api/trading/*` | * | Trading operations |
+
 ### Database Connections
 
 | Service | Connection String |
 |---------|-------------------|
-| PostgreSQL | `postgres://postgres:ThaliumX2025@localhost:5432/thaliumx` |
-| MongoDB | `mongodb://admin:ThaliumX2025@localhost:27017` |
-| Redis | `redis://localhost:6379` |
+| PostgreSQL | `postgres://thaliumx:ThaliumX2025@localhost:5432/thaliumx` |
+| MongoDB | `mongodb://thaliumx:ThaliumX2025@localhost:27017` |
+| Redis | `redis://:ThaliumX2025@localhost:6379` |
 
 ---
 
@@ -523,13 +591,15 @@ docker run --rm -v thaliumx-postgres-data:/data -v $(pwd):/backup alpine \
 
 After installation:
 
-1. **Configure Keycloak**: Create realms, clients, and users
-2. **Setup Grafana Dashboards**: Import pre-built dashboards
-3. **Configure APISIX Routes**: Define API routes and plugins
-4. **Setup Wazuh Agents**: Install agents on hosts to monitor
-5. **Create Kafka Topics**: Define topics for your application
-6. **Register Schemas**: Add Avro/Protobuf schemas to Schema Registry
-7. **Configure OPA Policies**: Write Rego policies for authorization
+1. **Access the Frontend**: Open http://localhost:3001
+2. **Configure Keycloak**: Create realms, clients, and users
+3. **Setup Grafana Dashboards**: Import pre-built dashboards
+4. **Configure APISIX Routes**: Define API routes and plugins
+5. **Setup Wazuh Agents**: Install agents on hosts to monitor
+6. **Create Kafka Topics**: Define topics for your application
+7. **Register Schemas**: Add Avro/Protobuf schemas to Schema Registry
+8. **Configure OPA Policies**: Write Rego policies for authorization
+9. **Review Security**: See [Security Documentation](SECURITY.md)
 
 ---
 
@@ -538,4 +608,6 @@ After installation:
 For issues and questions:
 - Check the [Installation Tips](installation-tips/README.md) for known issues
 - Review the [Core Services](core-services/README.md) documentation
+- Review the [Security Documentation](SECURITY.md)
+- Review the [Architecture Documentation](ARCHITECTURE.md)
 - Check container logs: `docker logs thaliumx-<service-name>`
