@@ -49,10 +49,10 @@ export class MigrationRunner {
     // This avoids initializing all services which may depend on tables that don't exist yet
     const config = {
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.POSTGRES_PORT || '5432'),
-      database: process.env.POSTGRES_DB || 'acme',
-      username: process.env.POSTGRES_USER || 'acme_user',
-      password: process.env.POSTGRES_PASSWORD || 'devpassword',
+      port: parseInt(process.env.DB_PORT || process.env.POSTGRES_PORT || '5432'),
+      database: process.env.DB_NAME || process.env.POSTGRES_DB || 'thaliumx',
+      username: process.env.DB_USER || process.env.POSTGRES_USER || 'thaliumx',
+      password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'ThaliumX2025',
       dialect: 'postgres' as const,
       logging: false, // Disable logging for migrations
       pool: {
@@ -74,8 +74,8 @@ export class MigrationRunner {
       LoggerService.info('Migration database connection established');
 
       // Set the search path to the correct schema
-      await this.sequelize.query('SET search_path TO acme, public;');
-      LoggerService.info('Migration database schema set to acme');
+      await this.sequelize.query('SET search_path TO thaliumx, public;');
+      LoggerService.info('Migration database schema set to thaliumx');
     } catch (error) {
       LoggerService.error('Migration database connection failed:', error);
       throw error;

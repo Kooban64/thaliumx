@@ -355,18 +355,20 @@ export class ConfigService {
     if (!this.vaultClient || !this.vaultConfig) return;
 
     const secretPaths = [
-      'acme/database',
-      'acme/redis',
-      'acme/jwt',
-      'acme/encryption',
-      'acme/smtp',
-      'acme/stripe',
-      'acme/twilio',
-      'acme/sendgrid',
-      'acme/kafka',
-      'acme/keycloak',
-      'acme/blockchain',
-      'acme/blnk-finance'
+      'thaliumx/database',
+      'thaliumx/redis',
+      'thaliumx/jwt',
+      'thaliumx/encryption',
+      'thaliumx/smtp',
+      'thaliumx/stripe',
+      'thaliumx/twilio',
+      'thaliumx/sendgrid',
+      'thaliumx/kafka',
+      'thaliumx/keycloak',
+      'thaliumx/blockchain',
+      'thaliumx/blnk-finance',
+      'thaliumx/api-keys',
+      'thaliumx/exchange-credentials'
     ];
 
     for (const secretPath of secretPaths) {

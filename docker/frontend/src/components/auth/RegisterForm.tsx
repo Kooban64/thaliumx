@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import apiClient from '@/lib/api/client';
-import { AuthResponse } from '@acme/shared/types';
+import type { AuthResponse } from '@thaliumx/shared';
 
 interface RegisterFormProps {
   onSuccess?: (token: string) => void;

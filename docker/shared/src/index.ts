@@ -1,9 +1,12 @@
 /**
  * ThaliumX Shared Types and Utilities
- * 
+ *
  * This package contains shared types, interfaces, and utilities
  * used across the frontend and backend applications.
  */
+
+// Re-export all types from the types module
+export * from './types';
 
 // Common Types
 export interface User {

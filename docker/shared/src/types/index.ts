@@ -301,7 +301,8 @@ export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
-export type NonNullable<T> = T extends null | undefined ? never : T;
+// Note: NonNullable is already defined in TypeScript's standard library
+// Use the built-in NonNullable<T> instead
 
 export type StringKeys<T> = {
   [K in keyof T]: T[K] extends string ? K : never;
