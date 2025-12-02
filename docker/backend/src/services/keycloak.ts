@@ -1,16 +1,16 @@
 /**
  * Keycloak Integration Service
- * 
+ *
  * Complete Keycloak integration for white-label broker management:
- * - Multi-realm architecture (Platform + Broker realms)
- * - Automatic realm provisioning for new brokers
+ * - Multi-realm architecture (Platform + Tenant realms)
+ * - Automatic realm provisioning for new brokers/tenants
  * - User management across realms
  * - Role-based access control (RBAC)
  * - SSO and federation support
  * - Token management and validation
  * - User migration between brokers
- * - APZHEX default broker integration
- * 
+ * - Configurable realm names via environment variables
+ *
  * Production-ready with comprehensive error handling
  */
 
@@ -268,8 +268,12 @@ export class KeycloakService {
     TRADER: 'trader',
     INVESTOR: 'investor',
     KYC_USER: 'kyc-user',
-    APZHEX_USER: 'apzhex-user'
+    TENANT_USER: 'tenant-user'
   };
+
+  // Configurable realm names (loaded from environment)
+  private static platformRealmName: string;
+  private static defaultTenantRealmName: string;
 
   // Default client scopes
   private static readonly DEFAULT_CLIENT_SCOPES = [
@@ -291,6 +295,15 @@ export class KeycloakService {
       // Load configuration
       this.config = this.loadKeycloakConfig();
       
+      // Load realm names from environment
+      this.platformRealmName = process.env.KEYCLOAK_PLATFORM_REALM || 'thaliumx-platform';
+      this.defaultTenantRealmName = process.env.KEYCLOAK_DEFAULT_TENANT_REALM || 'thaliumx-default-tenant';
+      
+      LoggerService.info('Keycloak realm configuration:', {
+        platformRealm: this.platformRealmName,
+        defaultTenantRealm: this.defaultTenantRealmName
+      });
+      
       // Initialize admin client
       this.initializeAdminClient();
       
@@ -303,8 +316,8 @@ export class KeycloakService {
       // Initialize platform realm
       await this.initializePlatformRealm();
       
-      // Initialize APZHEX broker realm
-      await this.initializeApzhexBroker();
+      // Initialize default tenant realm
+      await this.initializeDefaultTenantRealm();
       
       // Start periodic health monitoring
       this.startHealthMonitor();
@@ -319,6 +332,8 @@ export class KeycloakService {
         'info',
         {
           message: 'Keycloak service initialized',
+          platformRealm: this.platformRealmName,
+          defaultTenantRealm: this.defaultTenantRealmName,
           realmsCount: this.realms.size,
           brokerRealmsCount: this.brokerRealms.size
         }
@@ -328,6 +343,20 @@ export class KeycloakService {
       LoggerService.error('❌ Keycloak Service initialization failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get the platform realm name
+   */
+  public static getPlatformRealmName(): string {
+    return this.platformRealmName;
+  }
+
+  /**
+   * Get the default tenant realm name
+   */
+  public static getDefaultTenantRealmName(): string {
+    return this.defaultTenantRealmName;
   }
 
   /**
@@ -986,12 +1015,12 @@ export class KeycloakService {
 
   private static async initializePlatformRealm(): Promise<void> {
     try {
-      const platformRealm = 'thaliumx-platform';
+      const platformRealm = this.platformRealmName;
       
       if (!this.realms.has(platformRealm)) {
         const realmConfig: RealmConfig = {
           realm: platformRealm,
-          displayName: 'ThaliumX Platform',
+          displayName: process.env.KEYCLOAK_PLATFORM_REALM_DISPLAY_NAME || 'ThaliumX Platform',
           enabled: true,
           loginTheme: 'thaliumx',
           adminTheme: 'thaliumx',
@@ -1057,7 +1086,9 @@ export class KeycloakService {
         };
 
         await this.createRealm(realmConfig);
-        LoggerService.info('Platform realm initialized');
+        LoggerService.info(`Platform realm initialized: ${platformRealm}`);
+      } else {
+        LoggerService.info(`Platform realm already exists: ${platformRealm}`);
       }
 
     } catch (error) {
@@ -1066,24 +1097,31 @@ export class KeycloakService {
     }
   }
 
-  private static async initializeApzhexBroker(): Promise<void> {
+  /**
+   * Initialize the default tenant realm
+   * This is the primary tenant realm for the platform, configurable via environment variables
+   */
+  private static async initializeDefaultTenantRealm(): Promise<void> {
     try {
-      const apzhexRealm = 'apzhex-broker';
+      const tenantRealm = this.defaultTenantRealmName;
+      const tenantId = process.env.KEYCLOAK_DEFAULT_TENANT_ID || 'default-tenant';
+      const tenantName = process.env.KEYCLOAK_DEFAULT_TENANT_NAME || 'Default Tenant';
+      const tenantDomain = process.env.KEYCLOAK_DEFAULT_TENANT_DOMAIN || 'tenant.thaliumx.com';
       
-      if (!this.realms.has(apzhexRealm)) {
-        const apzhexConfig: BrokerRealmConfig = {
-          realm: apzhexRealm,
-          displayName: 'APZHEX Broker',
+      if (!this.realms.has(tenantRealm)) {
+        const tenantConfig: BrokerRealmConfig = {
+          realm: tenantRealm,
+          displayName: process.env.KEYCLOAK_DEFAULT_TENANT_DISPLAY_NAME || 'ThaliumX Default Tenant',
           enabled: true,
-          brokerId: 'apzhex',
-          brokerName: 'APZHEX',
-          domain: 'apzhex.thaliumx.com',
+          brokerId: tenantId,
+          brokerName: tenantName,
+          domain: tenantDomain,
           branding: {
-            logo: '/assets/logos/apzhex-logo.png',
-            favicon: '/assets/favicons/apzhex-favicon.ico',
-            primaryColor: '#1e40af',
-            secondaryColor: '#3b82f6',
-            customCss: '.apzhex-theme { --primary: #1e40af; --secondary: #3b82f6; }'
+            logo: process.env.KEYCLOAK_DEFAULT_TENANT_LOGO || '/assets/logos/thaliumx-logo.png',
+            favicon: process.env.KEYCLOAK_DEFAULT_TENANT_FAVICON || '/assets/favicons/thaliumx-favicon.ico',
+            primaryColor: process.env.KEYCLOAK_DEFAULT_TENANT_PRIMARY_COLOR || '#1e40af',
+            secondaryColor: process.env.KEYCLOAK_DEFAULT_TENANT_SECONDARY_COLOR || '#3b82f6',
+            customCss: process.env.KEYCLOAK_DEFAULT_TENANT_CUSTOM_CSS || '.thaliumx-theme { --primary: #1e40af; --secondary: #3b82f6; }'
           },
           features: {
             trading: true,
@@ -1093,11 +1131,11 @@ export class KeycloakService {
             presale: true
           },
           limits: {
-            maxUsers: 1000000,
-            maxTradingVolume: 1000000000,
-            maxMarginLeverage: 10
+            maxUsers: parseInt(process.env.KEYCLOAK_DEFAULT_TENANT_MAX_USERS || '1000000'),
+            maxTradingVolume: parseInt(process.env.KEYCLOAK_DEFAULT_TENANT_MAX_TRADING_VOLUME || '1000000000'),
+            maxMarginLeverage: parseInt(process.env.KEYCLOAK_DEFAULT_TENANT_MAX_MARGIN_LEVERAGE || '10')
           },
-          apzhexIntegration: true,
+          apzhexIntegration: false,
           accessTokenLifespan: 300,
           ssoSessionIdleTimeout: 1800,
           ssoSessionMaxLifespan: 36000,
@@ -1130,9 +1168,9 @@ export class KeycloakService {
           otpPolicyDigits: 6,
           otpPolicyLookAheadWindow: 1,
           otpPolicyPeriod: 30,
-          webAuthnPolicyRpEntityName: 'APZHEX Broker',
+          webAuthnPolicyRpEntityName: tenantName,
           webAuthnPolicySignatureAlgorithms: ['ES256'],
-          webAuthnPolicyRpId: 'apzhex.thaliumx.com',
+          webAuthnPolicyRpId: tenantDomain,
           webAuthnPolicyAttestationConveyancePreference: 'not specified',
           webAuthnPolicyAuthenticatorAttachment: 'not specified',
           webAuthnPolicyRequireResidentKey: 'not specified',
@@ -1140,9 +1178,9 @@ export class KeycloakService {
           webAuthnPolicyCreateTimeout: 0,
           webAuthnPolicyAvoidSameAuthenticatorRegister: false,
           webAuthnPolicyAcceptableAaguids: [],
-          webAuthnPolicyPasswordlessRpEntityName: 'APZHEX Broker',
+          webAuthnPolicyPasswordlessRpEntityName: tenantName,
           webAuthnPolicyPasswordlessSignatureAlgorithms: ['ES256'],
-          webAuthnPolicyPasswordlessRpId: 'apzhex.thaliumx.com',
+          webAuthnPolicyPasswordlessRpId: tenantDomain,
           webAuthnPolicyPasswordlessAttestationConveyancePreference: 'not specified',
           webAuthnPolicyPasswordlessAuthenticatorAttachment: 'not specified',
           webAuthnPolicyPasswordlessRequireResidentKey: 'not specified',
@@ -1153,19 +1191,25 @@ export class KeycloakService {
           otpSupportedApplications: ['FreeOTP', 'Google Authenticator'],
           webAuthnSupportedApplications: ['Chrome', 'Firefox', 'Safari'],
           attributes: {
-            'broker.realm': ['true'],
-            'broker.id': ['apzhex'],
-            'broker.default': ['true'],
-            'broker.version': ['1.0.0']
+            'tenant.realm': ['true'],
+            'tenant.id': [tenantId],
+            'tenant.default': ['true'],
+            'tenant.version': ['1.0.0']
           }
         };
 
-        await this.createBrokerRealm(apzhexConfig);
-        LoggerService.info('APZHEX broker realm initialized');
+        await this.createBrokerRealm(tenantConfig);
+        LoggerService.info(`Default tenant realm initialized: ${tenantRealm}`, {
+          tenantId,
+          tenantName,
+          tenantDomain
+        });
+      } else {
+        LoggerService.info(`Default tenant realm already exists: ${tenantRealm}`);
       }
 
     } catch (error) {
-      LoggerService.error('Initialize APZHEX broker failed:', error);
+      LoggerService.error('Initialize default tenant realm failed:', error);
       throw error;
     }
   }
