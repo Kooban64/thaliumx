@@ -1,49 +1,137 @@
-# Thaliumx Core
-# =============
-# Frontend & Backend placeholder services
-# Replace with actual implementations when ready
+# ThaliumX Core Services
+# ======================
+# Frontend (Next.js) & Backend (Node.js/Express) applications
+# Build context is the parent docker directory to access shared package
 
 services:
-  # Frontend Placeholder Service
-  # This is a placeholder that serves a status page
-  # Replace with actual frontend implementation when ready
+  # ===================
+  # FRONTEND SERVICE
+  # ===================
+  # Next.js application with Keycloak authentication
   frontend:
-    image: nginx:alpine
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://thaliumx-backend:3002
+        - NEXT_PUBLIC_KEYCLOAK_URL=http://thaliumx-keycloak:8080
+        - NEXT_PUBLIC_KEYCLOAK_REALM=thaliumx
+        - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=thaliumx-frontend
+    image: thaliumx/frontend:latest
     container_name: thaliumx-frontend
     hostname: thaliumx-frontend
     restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # Runtime environment variables
+      - NEXT_PUBLIC_API_URL=http://thaliumx-backend:3002
+      - NEXT_PUBLIC_KEYCLOAK_URL=http://thaliumx-keycloak:8080
+      - NEXT_PUBLIC_KEYCLOAK_REALM=thaliumx
+      - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=thaliumx-frontend
     ports:
       - "${FRONTEND_PORT:-3001}:3000"
-    volumes:
-      - ./config/frontend/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./config/frontend/html:/usr/share/nginx/html:ro
     networks:
       - thaliumx-net
+    depends_on:
+      backend:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      - "thaliumx.service=frontend"
+      - "thaliumx.tier=application"
 
-  # Backend Placeholder Service
-  # This is a placeholder API that returns health checks
-  # Replace with actual backend implementation when ready
+  # ===================
+  # BACKEND SERVICE
+  # ===================
+  # Node.js/Express API with comprehensive service integrations
   backend:
-    image: nginx:alpine
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: thaliumx/backend:latest
     container_name: thaliumx-backend
     hostname: thaliumx-backend
     restart: unless-stopped
+    env_file:
+      - ./core.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      # Vault Configuration
+      - VAULT_ADDR=http://thaliumx-vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-<VAULT_TOKEN>}
+      # Database Configuration
+      - DB_HOST=thaliumx-postgres
+      - DB_PORT=5432
+      - DB_NAME=thaliumx
+      - DB_USER=thaliumx
+      - DB_PASSWORD=${DB_PASSWORD:-ThaliumX2025}
+      # Redis Configuration
+      - REDIS_HOST=thaliumx-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-ThaliumX2025}
+      # Keycloak Configuration
+      - KEYCLOAK_URL=http://thaliumx-keycloak:8080
+      - KEYCLOAK_REALM=thaliumx
+      - KEYCLOAK_CLIENT_ID=thaliumx-backend
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-ThaliumX2025}
+      - KEYCLOAK_ADMIN_USERNAME=admin
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-ThaliumX2025}
+      # Kafka Configuration
+      - KAFKA_BROKERS=thaliumx-kafka:9092
+      # MongoDB Configuration
+      - MONGODB_URI=mongodb://thaliumx:${MONGO_PASSWORD:-ThaliumX2025}@thaliumx-mongodb:27017/thaliumx?authSource=admin
+      # OPA Configuration
+      - OPA_URL=http://thaliumx-opa:8181
+      # Trading Services
+      - DINGIR_URL=http://thaliumx-dingir-restapi:8001
+      - LIQUIBOOK_URL=http://thaliumx-liquibook:8083
+      - QUANTLIB_URL=http://thaliumx-quantlib:8084
+      # OpenTelemetry
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://thaliumx-otel-collector:4318
+      - OTEL_SERVICE_NAME=thaliumx-backend
+      # Feature Flags
+      - ENABLE_VAULT=true
+      - ENABLE_KAFKA=true
+      - ENABLE_OTEL=true
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_PORT:-3002}:3002"
     volumes:
-      - ./config/backend/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Mount secrets directory for local development fallback
+      - ./secrets:/app/.secrets:ro
     networks:
       - thaliumx-net
+    # Note: Dependencies on external services (postgres, redis, etc.) are managed
+    # at the orchestrator level via compose.yaml include order
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    labels:
+      - "thaliumx.service=backend"
+      - "thaliumx.tier=application"
 
 networks:
   thaliumx-net:

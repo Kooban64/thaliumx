@@ -1,0 +1,130 @@
+config:
+  target: 'http://localhost:3002'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up phase"
+    - duration: 120
+      arrivalRate: 50
+      name: "Load phase"
+    - duration: 60
+      arrivalRate: 100
+      name: "Stress phase"
+    - duration: 30
+      arrivalRate: 200
+      name: "Peak load phase"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: "Health Check"
+    weight: 20
+    flow:
+      - get:
+          url: "/health"
+
+  - name: "User Authentication"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            json: "$.data.accessToken"
+            as: "token"
+      - get:
+          url: "/api/auth/profile"
+          headers:
+            Authorization: "Bearer {{ token }}"
+
+  - name: "Margin Trading Operations"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            json: "$.data.accessToken"
+            as: "token"
+      - post:
+          url: "/api/margin/accounts"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            accountType: "cross"
+            initialDeposit:
+              asset: "USDT"
+              amount: 1000
+          capture:
+            json: "$.data.id"
+            as: "accountId"
+      - post:
+          url: "/api/margin/positions"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            accountId: "{{ accountId }}"
+            symbol: "BTCUSDT"
+            side: "long"
+            size: 0.1
+            leverage: 5
+
+  - name: "Exchange Operations"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            json: "$.data.accessToken"
+            as: "token"
+      - get:
+          url: "/api/exchange/orderbook/BTCUSDT"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - get:
+          url: "/api/exchange/market-data/BTCUSDT"
+          headers:
+            Authorization: "Bearer {{ token }}"
+
+  - name: "KYC Operations"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            json: "$.data.accessToken"
+            as: "token"
+      - get:
+          url: "/api/kyc/status"
+          headers:
+            Authorization: "Bearer {{ token }}"
+
+  - name: "Financial Reporting"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            json: "$.data.accessToken"
+            as: "token"
+      - get:
+          url: "/api/financial/transactions"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          qs:
+            limit: 50
+            offset: 0
