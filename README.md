@@ -2,13 +2,13 @@
 
 A comprehensive, production-ready infrastructure backbone for building modern financial applications.
 
-[![Version](https://img.shields.io/badge/version-0.2.0--backbone-blue.svg)](https://github.com/thaliumx/thaliumx)
-[![Services](https://img.shields.io/badge/services-32-green.svg)](#services)
+[![Version](https://img.shields.io/badge/version-0.3.0--trading-blue.svg)](https://github.com/thaliumx/thaliumx)
+[![Services](https://img.shields.io/badge/services-36-green.svg)](#services)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## 🚀 Overview
 
-Thaliumx provides a complete Docker-based infrastructure with 32 pre-configured services covering:
+Thaliumx provides a complete Docker-based infrastructure with 36 pre-configured services covering:
 
 - **Data Storage**: PostgreSQL (TimescaleDB), MongoDB, Redis, Typesense
 - **Messaging**: Kafka (KRaft), Schema Registry
@@ -16,6 +16,7 @@ Thaliumx provides a complete Docker-based infrastructure with 32 pre-configured 
 - **API Gateway**: APISIX with Dashboard
 - **Observability**: Prometheus, Grafana, Loki, Tempo, OpenTelemetry
 - **Fintech**: Ballerine (KYC/KYB), BlinkFinance (Ledger)
+- **Trading**: Dingir Exchange, Liquibook, QuantLib
 
 ## 📊 Project Status
 
@@ -28,9 +29,9 @@ Thaliumx provides a complete Docker-based infrastructure with 32 pre-configured 
 | Observability | ✅ Complete | 10 services |
 | Fintech | ✅ Complete | Ballerine (3), BlinkFinance |
 | Core | ✅ Placeholder | Frontend, Backend |
-| Trading | 🔲 Planned | Dingir, Liquibook, QuantLib |
+| Trading | ✅ Complete | Dingir (2), Liquibook, QuantLib |
 
-**Total: 32 services running and healthy**
+**Total: 36 services running and healthy**
 
 ## 🏗️ Architecture
 
@@ -43,6 +44,11 @@ Thaliumx provides a complete Docker-based infrastructure with 32 pre-configured 
 │   │ Frontend │  │ Backend  │  │Ballerine │  │BlinkFin. │       │
 │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘       │
 │        └──────────────┴──────────────┴──────────────┘           │
+│                           │                                      │
+│   ┌───────────────────────┼───────────────────────┐             │
+│   │              Trading Layer                     │             │
+│   │  Dingir Exchange │ Liquibook │ QuantLib       │             │
+│   └───────────────────────────────────────────────┘             │
 │                           │                                      │
 │                    ┌──────┴──────┐                              │
 │                    │   APISIX    │                              │
@@ -108,10 +114,19 @@ docker ps --filter name=thaliumx --format "table {{.Names}}\t{{.Status}}"
 | APISIX Dashboard | http://localhost:9000 | admin / ThaliumX2025 |
 | Kafka UI | http://localhost:8081 | - |
 | Wazuh Dashboard | https://localhost:5601 | admin / SecretPassword |
-| Ballerine Backoffice | http://localhost:3001 | - |
+| Ballerine Backoffice | http://localhost:3004 | - |
 | Prometheus | http://localhost:9090 | - |
 
-### APIs
+### Trading APIs
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Dingir REST API | http://localhost:50053/api/exchange/panel | Trading engine REST interface |
+| Dingir gRPC | localhost:50051 | High-performance gRPC interface |
+| Liquibook | http://localhost:8083 | Order book engine |
+| QuantLib | http://localhost:3010 | Financial calculations |
+
+### Other APIs
 
 | Service | URL |
 |---------|-----|
@@ -126,9 +141,9 @@ docker ps --filter name=thaliumx --format "table {{.Names}}\t{{.Status}}"
 
 | Service | Connection |
 |---------|------------|
-| PostgreSQL | `postgres://postgres:ThaliumX2025@localhost:5432/thaliumx` |
-| MongoDB | `mongodb://admin:ThaliumX2025@localhost:27017` |
-| Redis | `redis://localhost:6379` |
+| PostgreSQL | `postgres://thaliumx:ThaliumX2025@localhost:5432/thaliumx` |
+| MongoDB | `mongodb://thaliumx:ThaliumX2025@localhost:27017` |
+| Redis | `redis://:ThaliumX2025@localhost:6379` |
 
 ## 📁 Project Structure
 
@@ -136,16 +151,19 @@ docker ps --filter name=thaliumx --format "table {{.Names}}\t{{.Status}}"
 thaliumx/
 ├── docker/                    # Docker Compose configurations
 │   ├── compose.yaml          # Master orchestrator
-│   ├── databases/            # PostgreSQL, MongoDB, Redis
+│   ├── databases/            # PostgreSQL, MongoDB, Redis, Typesense
 │   ├── messaging/            # Kafka, Schema Registry
 │   ├── security/             # Keycloak, Vault, OPA
 │   ├── gateway/              # APISIX, etcd
 │   ├── observability/        # Prometheus, Grafana, Loki, etc.
 │   ├── wazuh/                # Wazuh SIEM/XDR
 │   ├── fintech/              # Ballerine, BlinkFinance
-│   ├── typesense/            # Search engine
 │   ├── core/                 # Frontend, Backend
-│   └── trading/              # (Planned) Trading services
+│   └── trading/              # Dingir, Liquibook, QuantLib
+│       ├── dingir/           # Rust trading engine
+│       ├── liquibook/        # C++/Node.js order book
+│       ├── quantlib/         # Python financial calculations
+│       └── plugins/          # Trading UI plugins
 ├── docs/                      # Documentation
 │   ├── INSTALLATION_GUIDE.md
 │   ├── core-services/
@@ -157,6 +175,7 @@ thaliumx/
 
 | Version | Tag | Description |
 |---------|-----|-------------|
+| 0.3.0 | v0.3.0-trading | Trading services (Dingir, Liquibook, QuantLib) - 36 containers |
 | 0.2.0 | v0.2.0-backbone | Complete backbone with 32 services + docs |
 | 0.1.0 | v0.1.0-core-services | Initial 28 services |
 
@@ -170,10 +189,10 @@ thaliumx/
 - [x] Observability Layer (10 services)
 - [x] Fintech Layer (Ballerine, BlinkFinance)
 - [x] Core Layer (Frontend/Backend placeholders)
+- [x] Trading Layer (Dingir Exchange, Liquibook, QuantLib)
 - [x] Documentation
 
 ### Planned 🔲
-- [ ] Trading Services (Dingir Exchange, Liquibook, QuantLib)
 - [ ] Citus for multi-tenancy
 - [ ] Production hardening
 - [ ] Kubernetes deployment
@@ -202,6 +221,9 @@ This platform integrates the following open-source projects:
 - [Wazuh](https://wazuh.com/)
 - [Ballerine](https://www.ballerine.com/)
 - [BlinkFinance](https://github.com/blnkfinance/blnk)
+- [Dingir Exchange](https://github.com/fluidex/dingir-exchange)
+- [Liquibook](https://github.com/objectcomputing/liquibook)
+- [QuantLib](https://www.quantlib.org/)
 
 ---
 
