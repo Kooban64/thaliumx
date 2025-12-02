@@ -130,8 +130,8 @@ services:
       - VAULT_ADDR=http://thaliumx-vault:8200
       - VAULT_TOKEN=${VAULT_TOKEN:-<VAULT_TOKEN>}
       - VAULT_MOUNT_PATH=secret
-      # Database Configuration
-      - DB_HOST=thaliumx-postgres
+      # Database Configuration (Citus for multi-tenant)
+      - DB_HOST=thaliumx-citus-coordinator
       - DB_PORT=5432
       - DB_NAME=thaliumx
       - DB_USER=thaliumx

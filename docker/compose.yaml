@@ -9,6 +9,10 @@ include:
   - path: databases/compose.yaml
     project_directory: databases
   
+  # Citus - Distributed PostgreSQL for multi-tenant
+  - path: citus/compose.yaml
+    project_directory: citus
+  
   - path: messaging/compose.yaml
     project_directory: messaging
 

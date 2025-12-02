@@ -70,10 +70,15 @@ ThaliumX is a microservices-based financial platform built on Docker containers.
 │  ┌─────────────────────────────────┼──────────────────────────────────┐   │
 │  │                         DATA LAYER                                  │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐│   │
-│  │  │ PostgreSQL  │  │   MongoDB   │  │    Redis    │  │ Typesense  ││   │
-│  │  │ TimescaleDB │  │  (Document) │  │   (Cache)   │  │  (Search)  ││   │
-│  │  │  Port:5432  │  │  Port:27017 │  │  Port:6379  │  │  Port:8108 ││   │
+│  │  │ PostgreSQL  │  │    Citus    │  │   MongoDB   │  │   Redis    ││   │
+│  │  │ TimescaleDB │  │Multi-Tenant │  │  (Document) │  │  (Cache)   ││   │
+│  │  │  Port:5432  │  │  Port:5434  │  │  Port:27017 │  │  Port:6379 ││   │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘│   │
+│  │                                                      ┌────────────┐│   │
+│  │                                                      │ Typesense  ││   │
+│  │                                                      │  (Search)  ││   │
+│  │                                                      │  Port:8108 ││   │
+│  │                                                      └────────────┘│   │
 │  └────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                       │
 │  ┌─────────────────────────────────┼──────────────────────────────────┐   │
@@ -148,10 +153,49 @@ Persistent storage:
 
 | Service | Technology | Purpose | Port |
 |---------|------------|---------|------|
-| PostgreSQL | PostgreSQL 16 | Relational DB | 5432 |
+| PostgreSQL | PostgreSQL 16 + TimescaleDB | Time-series DB | 5432 |
+| Citus | PostgreSQL 16 + Citus | Multi-tenant Distributed DB | 5434 |
 | MongoDB | MongoDB 7 | Document DB | 27017 |
 | Redis | Redis 7 | Cache/Pub-Sub | 6379 |
 | Typesense | Typesense | Search Engine | 8108 |
+
+#### Citus Multi-Tenant Architecture
+
+Citus provides horizontal scaling and multi-tenant isolation:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CITUS COORDINATOR                             │
+│                    (thaliumx-citus-coordinator:5434)            │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Reference Tables (replicated to all nodes):             │   │
+│  │  - tenants                                               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Distributed Tables (sharded by tenant_id):              │   │
+│  │  - users, accounts, transactions, orders, audit_logs     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+┌─────────────────────────┐     ┌─────────────────────────┐
+│    CITUS WORKER 1       │     │    CITUS WORKER 2       │
+│ (thaliumx-citus-worker-1)│     │ (thaliumx-citus-worker-2)│
+│                         │     │                         │
+│  Shards: 1-16           │     │  Shards: 17-32          │
+│  (tenant data)          │     │  (tenant data)          │
+└─────────────────────────┘     └─────────────────────────┘
+```
+
+**Multi-Tenant Benefits:**
+- **Tenant Isolation**: Each tenant's data is isolated by `tenant_id`
+- **Horizontal Scaling**: Add more workers to handle more tenants
+- **Query Routing**: Queries are automatically routed to correct shards
+- **Reference Tables**: Lookup tables replicated to all nodes for fast joins
 
 ### 6. Messaging Layer
 
@@ -355,6 +399,7 @@ docker/shared/
 |----------|-------|
 | PostgreSQL 16 | Primary relational data |
 | TimescaleDB | Time-series data |
+| Citus 12.1 | Multi-tenant distributed data |
 | MongoDB 7 | Document storage |
 | Redis 7 | Caching, sessions |
 | Typesense | Full-text search |
@@ -386,6 +431,13 @@ docker/
 │
 ├── databases/                # Data layer
 │   └── compose.yaml
+│
+├── citus/                    # Multi-tenant database
+│   ├── compose.yaml
+│   └── init/
+│       ├── 01-init-citus.sql
+│       ├── 02-register-workers.sql
+│       └── 03-distribute-tables.sql
 │
 ├── messaging/                # Messaging layer
 │   └── compose.yaml
@@ -445,8 +497,21 @@ volumes:
 | Frontend | Multiple replicas behind load balancer |
 | Backend | Multiple replicas with shared Redis sessions |
 | Kafka | Partition-based scaling |
-| PostgreSQL | Read replicas, Citus for sharding |
+| PostgreSQL | Read replicas for analytics |
+| Citus | Add workers for tenant sharding |
 | Redis | Redis Cluster |
+
+### Multi-Tenant Scaling with Citus
+
+```
+# Add a new worker node
+docker exec thaliumx-citus-coordinator psql -U postgres -d thaliumx \
+  -c "SELECT citus_add_node('thaliumx-citus-worker-3', 5432);"
+
+# Rebalance shards across workers
+docker exec thaliumx-citus-coordinator psql -U postgres -d thaliumx \
+  -c "SELECT rebalance_table_shards();"
+```
 
 ### Vertical Scaling
 
@@ -519,8 +584,8 @@ Observability
 NODE_ENV=production
 PORT=3002
 
-# Database
-DB_HOST=thaliumx-postgres
+# Database (Citus for multi-tenant)
+DB_HOST=thaliumx-citus-coordinator
 DB_PORT=5432
 DB_NAME=thaliumx
 DB_USER=thaliumx

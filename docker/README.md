@@ -54,6 +54,13 @@ docker/
 ├── databases/                # Data layer
 │   └── compose.yaml         # PostgreSQL, MongoDB, Redis
 │
+├── citus/                    # Multi-tenant distributed database
+│   ├── compose.yaml         # Citus coordinator + workers
+│   └── init/                # Initialization scripts
+│       ├── 01-init-citus.sql
+│       ├── 02-register-workers.sql
+│       └── 03-distribute-tables.sql
+│
 ├── messaging/                # Messaging layer
 │   └── compose.yaml         # Kafka, Schema Registry
 │
@@ -144,6 +151,20 @@ docker compose build frontend backend
 | postgres | timescale/timescaledb | 5432 | PostgreSQL with TimescaleDB |
 | mongodb | mongo:7 | 27017 | Document database |
 | redis | redis:7-alpine | 6379 | Cache and pub/sub |
+
+### Citus Multi-Tenant (`citus/`)
+
+| Service | Image | Port | Description |
+|---------|-------|------|-------------|
+| citus-coordinator | citusdata/citus:12.1 | 5434 | Distributed query coordinator |
+| citus-worker-1 | citusdata/citus:12.1 | - | Data shard worker 1 |
+| citus-worker-2 | citusdata/citus:12.1 | - | Data shard worker 2 |
+
+**Multi-Tenant Features:**
+- Tables distributed by `tenant_id` for isolation
+- Reference tables replicated to all nodes
+- 32 shards per distributed table
+- Horizontal scaling by adding workers
 
 ### Messaging (`messaging/`)
 
@@ -290,8 +311,8 @@ Each service group has its own environment file:
 NODE_ENV=production
 PORT=3002
 
-# Database
-DB_HOST=thaliumx-postgres
+# Database (Citus for multi-tenant)
+DB_HOST=thaliumx-citus-coordinator
 DB_PORT=5432
 DB_NAME=thaliumx
 DB_USER=thaliumx
@@ -449,12 +470,35 @@ docker system prune -a --volumes
 ### Backup
 
 ```bash
-# Backup PostgreSQL
+# Backup PostgreSQL (TimescaleDB)
 docker exec thaliumx-postgres pg_dump -U thaliumx thaliumx > backup.sql
+
+# Backup Citus (multi-tenant)
+docker exec thaliumx-citus-coordinator pg_dump -U postgres thaliumx > citus-backup.sql
 
 # Backup volumes
 docker run --rm -v thaliumx-postgres-data:/data -v $(pwd):/backup \
   alpine tar czf /backup/postgres-backup.tar.gz -C /data .
+```
+
+### Citus Management
+
+```bash
+# Check worker nodes
+docker exec thaliumx-citus-coordinator psql -U postgres -d thaliumx \
+  -c "SELECT * FROM citus_get_active_worker_nodes();"
+
+# Check distributed tables
+docker exec thaliumx-citus-coordinator psql -U postgres -d thaliumx \
+  -c "SELECT * FROM citus_tables;"
+
+# Add a new worker
+docker exec thaliumx-citus-coordinator psql -U postgres -d thaliumx \
+  -c "SELECT citus_add_node('thaliumx-citus-worker-3', 5432);"
+
+# Rebalance shards
+docker exec thaliumx-citus-coordinator psql -U postgres -d thaliumx \
+  -c "SELECT rebalance_table_shards();"
 ```
 
 ### Updates
