@@ -1,0 +1,23 @@
+# Dingir Exchange Production Configuration
+# =========================================
+# Thaliumx Platform - Standardized credentials
+
+slice_interval: 3600
+slice_keeptime: 259200
+disable_self_trade: true
+disable_market_order: true
+check_eddsa_signatue: auto
+user_order_num_limit: 2000
+debug: false
+
+# Database connections (using thaliumx-postgres)
+db_log: postgres://thaliumx:ThaliumX2025@thaliumx-postgres:5432/thaliumx
+db_history: postgres://thaliumx:ThaliumX2025@thaliumx-postgres:5432/thaliumx
+
+# Kafka brokers (using thaliumx-kafka)
+brokers: 'thaliumx-kafka:9092'
+
+# Redis connection (using thaliumx-redis)
+redis_host: thaliumx-redis
+redis_port: 6379
+redis_password: ThaliumX2025
