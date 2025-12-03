@@ -42,3 +42,5 @@ __pycache__/
 *.crt
 !docker/*/config/*.crt
 !docker/*/config/*.key
+docker/vault/init-keys.json
+.secrets/
