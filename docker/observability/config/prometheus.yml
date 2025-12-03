@@ -1,84 +1,125 @@
-# Prometheus Configuration
-# ========================
+# Prometheus Configuration for ThaliumX
+# Production-ready monitoring setup
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: thaliumx
-    env: development
+    cluster: 'thaliumx-production'
+    environment: 'production'
 
+# Alertmanager configuration
 alerting:
-  alertmanagers: []
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
 
+# Load rules once and periodically evaluate them
 rule_files:
   - /etc/prometheus/alerts/*.yml
 
+# Scrape configurations
 scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+    metrics_path: /metrics
 
-  # APISIX metrics
+  # Backend API Service
+  - job_name: 'thaliumx-backend'
+    static_configs:
+      - targets: ['backend:3002']
+    metrics_path: /metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    scheme: http
+    tls_config:
+      insecure_skip_verify: true
+
+  # Frontend Application
+  - job_name: 'thaliumx-frontend'
+    static_configs:
+      - targets: ['frontend:3000']
+    metrics_path: /api/health
+    scrape_interval: 30s
+
+  # APISIX Gateway
   - job_name: 'apisix'
     static_configs:
-      - targets: ['thaliumx-apisix:9091']
+      - targets: ['apisix:9091']
+    metrics_path: /apisix/prometheus/metrics
 
-  # Grafana metrics
-  - job_name: 'grafana'
-    static_configs:
-      - targets: ['thaliumx-grafana:3000']
-
-  # Loki metrics
-  - job_name: 'loki'
-    static_configs:
-      - targets: ['thaliumx-loki:3100']
-
-  # Tempo metrics
-  - job_name: 'tempo'
-    static_configs:
-      - targets: ['thaliumx-tempo:3200']
-
-  # OpenTelemetry Collector metrics
-  - job_name: 'otel-collector'
-    static_configs:
-      - targets: ['thaliumx-otel-collector:8888']
-
-  # cAdvisor - Container metrics
-  - job_name: 'cadvisor'
-    static_configs:
-      - targets: ['thaliumx-cadvisor:8080']
-
-  # PostgreSQL Exporter
+  # PostgreSQL
   - job_name: 'postgres'
     static_configs:
-      - targets: ['thaliumx-postgres-exporter:9187']
+      - targets: ['postgres:5432']
+    metrics_path: /metrics
+    # Note: Requires postgres_exporter sidecar
 
-  # Redis Exporter
+  # Redis
   - job_name: 'redis'
     static_configs:
-      - targets: ['thaliumx-redis-exporter:9121']
+      - targets: ['redis:6379']
+    metrics_path: /metrics
+    # Note: Requires redis_exporter sidecar
 
-  # Blackbox Exporter - Endpoint probing
-  - job_name: 'blackbox'
-    metrics_path: /probe
-    params:
-      module: [http_2xx]
-    static_configs:
-      - targets:
-          - http://thaliumx-frontend:3000/health
-          - http://thaliumx-backend:8000/health
-          - http://thaliumx-keycloak:8080/health/ready
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: thaliumx-blackbox-exporter:9115
-
-  # Kafka metrics (if JMX exporter is configured)
+  # Kafka
   - job_name: 'kafka'
     static_configs:
-      - targets: ['thaliumx-kafka:9092']
+      - targets: ['kafka:9092']
+    metrics_path: /metrics
+    # Note: Requires kafka_exporter sidecar
+
+  # Keycloak
+  - job_name: 'keycloak'
+    static_configs:
+      - targets: ['keycloak:8080']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Vault
+  - job_name: 'vault'
+    static_configs:
+      - targets: ['vault:8200']
+    metrics_path: /v1/sys/metrics
+    params:
+      format: ['prometheus']
+    scheme: http
+
+  # OpenTelemetry Collector
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+    metrics_path: /metrics
+
+  # QuantLib Service
+  - job_name: 'quantlib-svc'
+    static_configs:
+      - targets: ['quantlib-svc:8000']
+    metrics_path: /metrics
+
+  # Node Exporter (if deployed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    metrics_path: /metrics
+
+  # cAdvisor (Container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: /metrics
+
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    metrics_path: /metrics
+
+  # Jaeger
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
+    metrics_path: /metrics

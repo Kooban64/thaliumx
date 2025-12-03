@@ -1,0 +1,103 @@
+{
+	"info": {
+		"_postman_id": "4cc5fba9-3c49-4fb6-ab6c-e5528de1285a",
+		"name": "OFAC-API.com v4",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32964959"
+	},
+	"item": [
+		{
+			"name": "/screen",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"apiKey\":\"4bee15b2-8aff-4ce1-8570-354d98c93fac\",\n    \"minScore\": 100,\n    \"sources\":[\"SDN\", \"PEP\", \"DPL\", \"UN\", \"OFSI\", \"FSF\", \"DFAT\", \"FHFA\", \"SAM\", \"HUD\", \"SEMA\", \"BFS\", \"SECO\", \"MXSAT\", \"LEIE\", \"LFIU\", \"NONSDN\", \"FINCEN\", \"DUAL-USE\"],\n    \"cases\": [\n        {\n            \"id\": \"test8\",\n            \"name\": \"test8\",\n            \"cryptoId\": \"bc1q79gljq4g5tc5afpg5s3tqkjquzx0d0328w5sd3\"\n            \n        }\n        \n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.ofac-api.com/v4/screen",
+					"protocol": "https",
+					"host": [
+						"api",
+						"ofac-api",
+						"com"
+					],
+					"path": [
+						"v4",
+						"screen"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/entities",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "apiKey",
+						"value": "{{apiKey}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "https://api.ofac-api.com/v4/entities?sources=SDN,EU&types=person,organization,vessel,aircraft&categories=sanction,debarrment",
+					"protocol": "https",
+					"host": [
+						"api",
+						"ofac-api",
+						"com"
+					],
+					"path": [
+						"v4",
+						"entities"
+					],
+					"query": [
+						{
+							"key": "sources",
+							"value": "SDN,EU"
+						},
+						{
+							"key": "types",
+							"value": "person,organization,vessel,aircraft"
+						},
+						{
+							"key": "categories",
+							"value": "sanction,debarrment"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/entities/{id}",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api.ofac-api.com/v4/entities/sdn-abu-abbas",
+					"protocol": "https",
+					"host": [
+						"api",
+						"ofac-api",
+						"com"
+					],
+					"path": [
+						"v4",
+						"entities",
+						"sdn-abu-abbas"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

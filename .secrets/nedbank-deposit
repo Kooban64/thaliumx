@@ -1,0 +1,28 @@
+ key: FjL8gH6CS41uE0vQrNjDH7PEZmblMgBc6ieVwVtX
+
+1. API is used to get all transactions
+GET: https://pxsvfmxmo1.execute-api.af-south-1.amazonaws.com/Stage/Transactions
+
+Response:
+{
+    "statusCode": 200,
+    "body": "[{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:27:43\",\"CurrentBalance\":\"9090.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714084026\",\"Reference\":\"APZX99521403\",\"TransactionAmount\":500,\"AvailableBalance\":\"8090.00\",\"Environment\":\"Prod\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:23:66\",\"CurrentBalance\":\"7090.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714083722\",\"Reference\":\"APZX20928397\",\"TransactionAmount\":500,\"AvailableBalance\":\"7090.00\",\"Environment\":\"Prod\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:25:98\",\"CurrentBalance\":\"7590.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714083879\",\"Reference\":\"APZX16817086\",\"TransactionAmount\":500,\"AvailableBalance\":\"7590.00\",\"Environment\":\"Prod\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"13:03:37:41\",\"CurrentBalance\":\"5665.00\",\"ActionDate\":\"20250714\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27538153603\",\"Reference\":\"APZX10994609\",\"TransactionAmount\":1000,\"AvailableBalance\":\"5665.00\",\"Environment\":\"Stage\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:28:31\",\"CurrentBalance\":\"9090.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714084097\",\"Reference\":\"APZX32311282\",\"TransactionAmount\":500,\"AvailableBalance\":\"8590.00\",\"Environment\":\"Prod\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:20:93\",\"CurrentBalance\":\"6090.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714083478\",\"Reference\":\"APZX66149504\",\"TransactionAmount\":500,\"AvailableBalance\":\"6090.00\",\"Environment\":\"Prod\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:22:95\",\"CurrentBalance\":\"7090.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714083665\",\"Reference\":\"APZX74962610\",\"TransactionAmount\":500,\"AvailableBalance\":\"6590.00\",\"Environment\":\"Prod\"},{\"ChannelName\":\"CPS\",\"AccountNumber\":\"1309630755\",\"ActionTime\":\"11:50:28:73\",\"CurrentBalance\":\"9090.00\",\"ActionDate\":\"20250731\",\"TransactionType\":\"EFT DEPOSIT\",\"TransactionKey\":\"27714084128\",\"Reference\":\"APZX94397029\",\"TransactionAmount\":500,\"AvailableBalance\":\"9090.00\",\"Environment\":\"Prod\"}]"
+}
+
+
+2. This API is used to get a specific transaction
+GET: https://pxsvfmxmo1.execute-api.af-south-1.amazonaws.com/Stage/Transactions/{TransactionKey} e.g. 27538153603
+Response:
+{
+    "ChannelName": "CPS",
+    "AccountNumber": "1309630755",
+    "ActionTime": "13:03:37:41",
+    "CurrentBalance": "5665.00",
+    "ActionDate": "20250714",
+    "TransactionType": "EFT DEPOSIT",
+    "TransactionKey": "27538153603",
+    "Reference": "APZX10994609",
+    "TransactionAmount": 1000,
+    "AvailableBalance": "5665.00",
+    "Environment": "Stage"
+}

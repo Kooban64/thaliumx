@@ -1,0 +1,710 @@
+{
+	"info": {
+		"_postman_id": "4978b10b-fe0a-416d-9c34-68df73e216d2",
+		"name": "TPP Sandbox  - Payments B2B",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "9307082"
+	},
+	"item": [
+		{
+			"name": "isUp",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/isup",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"isup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Proxy - resolve - MBNO",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"resolution_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Data\": {\n        \"ShapID\": \"0781231234\",\n        \"ProxyType\": \"MBNO\",\n        \"Identifiers\": {\n            \"EndToEndID\": \"EndToEndID_{{$timestamp}}\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        }\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payshap/resolve",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payshap",
+						"resolve"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Proxy - resolve - CUST",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"resolution_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Data\": {\n    \"ShapID\": \"aj001@mybiz.nedbank\",\n        \"ProxyType\": \"CUST\",\n        \"Identifiers\": {\n            \"EndToEndID\": \"EndToEndID_{{$timestamp}}\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        }\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payshap/resolve",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payshap",
+						"resolve"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Proxy - resolve status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payshap/resolve/{{resolution_id}}",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payshap",
+						"resolve",
+						"{{resolution_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Proxy - create merchant",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"resolution_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Data\": {\n        \"ShapID\": \"aj001@mybiz.nedbank\",\n        \"LinkedAccount\": {\n            \"Identification\": \"122343432\",\n            \"SchemeName\": \"SortCodeAccountNumber\"\n        },\n        \"Identifiers\": {\n            \"EndToEndID\": \"EndToEndID_{{$timestamp}}\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        }\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payshap/merchant/register",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payshap",
+						"merchant",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Domains Proxies",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"resolution_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payshap/domains",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payshap",
+						"domains"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "InitiatePayment - PBAC Full Exmaple",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"payment_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Data\": {\n        \"Creditor\": {\n            \"Name\": \"string\",\n            \"Address\": {\n                \"AddressType\": \"Business\",\n                \"Department\": \"string\",\n                \"SubDepartment\": \"string\",\n                \"StreetName\": \"string\",\n                \"BuildingNumber\": \"string\",\n                \"PostCode\": \"string\",\n                \"TownName\": \"string\",\n                \"CountrySubDivision\": \"string\",\n                \"Country\": \"ZA\",\n                \"AddressLine\": [\n                    \"string\"\n                ]\n            }\n        },\n        \"CreditorAccount\": {\n            \"Identification\": \"string\",\n            \"Name\": \"string\",\n            \"SchemeName\": \"SortCodeAccountNumber\",\n            \"SecondaryIdentification\": \"string\",\n            \"AccountType\": \"Personal\",\n            \"AccountSubType\": \"CurrentAccount\"\n        },\n        \"Debtor\": {\n            \"Name\": \"string\",\n            \"Address\": {\n                \"AddressType\": \"Business\",\n                \"Department\": \"string\",\n                \"SubDepartment\": \"string\",\n                \"StreetName\": \"string\",\n                \"BuildingNumber\": \"string\",\n                \"PostCode\": \"string\",\n                \"TownName\": \"string\",\n                \"CountrySubDivision\": \"string\",\n                \"Country\": \"ZA\",\n                \"AddressLine\": [\n                    \"string\"\n                ]\n            }\n        },\n        \"DebtorAccount\": {\n            \"Identification\": \"string\",\n            \"Name\": \"string\",\n            \"SchemeName\": \"SortCodeAccountNumber\",\n            \"SecondaryIdentification\": \"string\",\n            \"AccountType\": \"Personal\",\n            \"AccountSubType\": \"CurrentAccount\"\n        },\n        \"InterBankSettlementAmount\": {\n            \"Amount\": \"22.92\",\n            \"Currency\": \"ZAR\"\n        },\n        \"PaymentIdentifiers\": {\n            \"EndToEndID\": \"EndToEndID_{{$timestamp}}\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        },\n        \"CategoryPurpose\": {\n            \"Code\": \"stri\",\n            \"Proprietary\": \"string\"\n        },\n        \"purpose\": {\n            \"Code\": \"stri\"\n        },\n        \"UltimateDebtor\": {\n            \"Name\": \"string\",\n            \"OrganisationId\": {\n                \"BicOrBei\": \"ZZTMMOGY\",\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            },\n            \"PrivateId\": {\n                \"DateAndPlaceOfBirth\": {\n                    \"BirthDate\": \"2022-12-02\",\n                    \"CityOfBirth\": \"string\",\n                    \"CountryOfBirth\": \"st\"\n                },\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            }\n        },\n        \"UltimateCreditor\": {\n            \"Name\": \"string\",\n            \"OrganisationId\": {\n                \"BicOrBei\": \"VEGHQYR7\",\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            },\n            \"PrivateId\": {\n                \"DateAndPlaceOfBirth\": {\n                    \"BirthDate\": \"2022-12-02\",\n                    \"CityOfBirth\": \"string\",\n                    \"CountryOfBirth\": \"st\"\n                },\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            }\n        },\n        \"RemittanceInformation\": {\n            \"Unstructured\": \"string\",\n            \"Structured\": {\n                \"StructuredRemittanceType\": {\n                    \"CreditorReferenceInfoCode\": \"SCOR\",\n                    \"CreditorReferenceInfoIssuer\": \"string\"\n                },\n                \"CreditorReferenceInfoReference\": \"string\"\n            }\n        }\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payments/initiate-payment",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payments",
+						"initiate-payment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "InitiatePayment - PBAC",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"payment_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Data\": {\n        \"CreditorAccount\": {\n            \"Identification\": \"1987651110867158\",\n            \"Name\": \"Payee Creditor\",\n            \"SchemeName\": \"SortCodeAccountNumber\",\n            \"SecondaryIdentification\": \"1110867158\"\n        },\n        \"DebtorAccount\": {\n            \"Identification\": \"1987651001116836\",\n            \"Name\": \"Payer Debtor\",\n            \"SchemeName\": \"SortCodeAccountNumber\",\n            \"SecondaryIdentification\": \"1001116836\"\n        },\n        \"InterBankSettlementAmount\": {\n            \"Amount\": \"0.50\",\n            \"Currency\": \"ZAR\"\n        },\n        \"PaymentIdentifiers\": {\n            \"EndToEndID\": \"00016899308543731\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        },\n        \"RemittanceInformation\": {\n            \"Unstructured\": \"Payment by PayShap\",\n            \"CreditorReferenceInfoReference\": \"PayShap: Test Payment\"\n        }\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payments/initiate-payment",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payments",
+						"initiate-payment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "InitiatePayment - PBPX Full Example",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"payment_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Data\": {\n        \"Creditor\": {\n            \"Name\": \"string\",\n            \"Address\": {\n                \"AddressType\": \"Business\",\n                \"Department\": \"string\",\n                \"SubDepartment\": \"string\",\n                \"StreetName\": \"string\",\n                \"BuildingNumber\": \"string\",\n                \"PostCode\": \"string\",\n                \"TownName\": \"string\",\n                \"CountrySubDivision\": \"string\",\n                \"Country\": \"ZA\",\n                \"AddressLine\": [\n                    \"string\"\n                ]\n            }\n        },\n        \"CreditorAccount\": {\n            \"Identification\": \"string\",\n            \"Name\": \"string\",\n            \"SchemeName\": \"ShapID\",\n            \"SecondaryIdentification\": \"string\"\n        },\n        \"Debtor\": {\n            \"Name\": \"string\",\n            \"Address\": {\n                \"AddressType\": \"Business\",\n                \"Department\": \"string\",\n                \"SubDepartment\": \"string\",\n                \"StreetName\": \"string\",\n                \"BuildingNumber\": \"string\",\n                \"PostCode\": \"string\",\n                \"TownName\": \"string\",\n                \"CountrySubDivision\": \"string\",\n                \"Country\": \"ZA\",\n                \"AddressLine\": [\n                    \"string\"\n                ]\n            }\n        },\n        \"DebtorAccount\": {\n            \"Identification\": \"string\",\n            \"Name\": \"string\",\n            \"SchemeName\": \"SortCodeAccountNumber\",\n            \"SecondaryIdentification\": \"string\",\n            \"AccountType\": \"Personal\",\n            \"AccountSubType\": \"Current\"\n        },\n        \"InterBankSettlementAmount\": {\n            \"Amount\": \"22.92\",\n            \"Currency\": \"ZAR\"\n        },\n        \"PaymentIdentifiers\": {\n            \"EndToEndID\": \"EndToEndID_{{$timestamp}}\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        },\n        \"CategoryPurpose\": {\n            \"Code\": \"stri\",\n            \"Proprietary\": \"string\"\n        },\n        \"Purpose\": {\n            \"Code\": \"stri\"\n        },\n        \"UltimateDebtor\": {\n            \"Name\": \"string\",\n            \"OrganisationId\": {\n                \"BicOrBei\": \"ZZTMMOGY\",\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            },\n            \"PrivateId\": {\n                \"DateAndPlaceOfBirth\": {\n                    \"BirthDate\": \"2022-12-02\",\n                    \"CityOfBirth\": \"string\",\n                    \"CountryOfBirth\": \"st\"\n                },\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            }\n        },\n        \"UltimateCreditor\": {\n            \"Name\": \"string\",\n            \"OrganisationId\": {\n                \"BicOrBei\": \"VEGHQYR7\",\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            },\n            \"PrivateId\": {\n                \"DateAndPlaceOfBirth\": {\n                    \"BirthDate\": \"2022-12-02\",\n                    \"CityOfBirth\": \"string\",\n                    \"CountryOfBirth\": \"st\"\n                },\n                \"Other\": {\n                    \"ID\": \"string\",\n                    \"SchemeName\": {\n                        \"Code\": \"stri\",\n                        \"Proprietary\": \"string\"\n                    },\n                    \"Issuer\": \"string\"\n                }\n            }\n        },\n        \"RemittanceInformation\": {\n            \"Unstructured\": \"string\",\n            \"Structured\": {\n                \"StructuredRemittanceType\": {\n                    \"CreditorReferenceInfoCode\": \"SCOR\",\n                    \"CreditorReferenceInfoIssuer\": \"string\"\n                },\n                \"CreditorReferenceInfoReference\": \"string\"\n            }\n        }\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/payshap/v1/payments/initiate-payment",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"payshap",
+						"v1",
+						"payments",
+						"initiate-payment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "InitiatePayment - PBPX",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var JSONData = pm.response.json();",
+							"",
+							"if (JSONData.Data){",
+							"pm.environment.set(\"payment_id\", JSONData.Data.ID);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Data\": {\n        \"CreditorAccount\": {\n            \"Identification\": \"aj001@mybiz.nedbank\",\n            \"Name\": \"Customer Name\",\n            \"SchemeName\": \"ShapID\"\n        },\n        \"DebtorAccount\": {\n            \"Identification\": \"25065512345678\",\n            \"Name\": \"string\",\n            \"SchemeName\": \"SortCodeAccountNumber\",\n            \"SecondaryIdentification\": \"12345678\"\n        },\n        \"InterBankSettlementAmount\": {\n            \"Amount\": \"22.92\",\n            \"Currency\": \"ZAR\"\n        },\n        \"PaymentIdentifiers\": {\n            \"EndToEndID\": \"EndToEndID_{{$timestamp}}\",\n            \"InstructionIdentification\": \"{{$randomUUID}}\"\n        },\n        \"RemittanceInformation\": {\n            \"Unstructured\": \"string\",\n            \"CreditorReferenceInfoReference\": \"string\"\n        }\n    }\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/v1/payments/initiate-payment",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"v1",
+						"payments",
+						"initiate-payment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Payment - status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-fapi-financial-id",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-idempotency-key",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-id",
+						"value": "{{client.id}}",
+						"type": "text"
+					},
+					{
+						"key": "x-ibm-client-secret",
+						"value": "{{client.secret}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://b2b-api.nedbank.co.za/apimarket/b2b-sb/payments/payshap/v1/payments/{{payment_id}}",
+					"protocol": "https",
+					"host": [
+						"b2b-api",
+						"nedbank",
+						"co",
+						"za"
+					],
+					"path": [
+						"apimarket",
+						"b2b-sb",
+						"payments",
+						"payshap",
+						"v1",
+						"payments",
+						"{{payment_id}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

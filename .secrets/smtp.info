@@ -1,0 +1,8 @@
+# SMTP Credentials
+smtp_user = "kooban.smtp@gmail.com"
+smtp_password = "ztpf zttv rrip spaf"
+
+# Email Configuration
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+

@@ -45,8 +45,4 @@ include:
 
 networks:
   thaliumx-net:
-    name: thaliumx-net
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
+    external: true

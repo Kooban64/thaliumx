@@ -1,0 +1,38 @@
+# ThaliumX Testnet Deployed Contracts (BSC Testnet)
+# Last Updated: November 24, 2025
+# Total: 12 contracts deployed
+
+# Core Token Contracts
+ThaliumToken: 0x890c7DFB0103E68Df8Fe3FF266638cb714ca8CF7
+ThaliumPresale: 0x18D53283c23BC9fFAa3e8B03154f0C4be49de526
+ThaliumVesting: 0x4fE4BC41B0c52861115142BaCECE25d01A8644ff
+
+# DeFi Contracts
+ThaliumDEX: 0x1E0B9fce147c2aB5646db027F9Ba3Cfd0ba573A6
+ThaliumMarginVault: 0xe8C2B5D7C85D3301EFB02A6e4C5923e914345f1a
+
+# Marketplace Contracts
+ThaliumNFT: 0x5e08aA65ceE54A6463df71096c9C4c23E317d58C
+
+# Governance Contracts
+ThaliumGovernance: 0x48Fa2BBcf5425db9aBeCD3B4d549b44f3FF7547E
+
+# Staking Contracts
+ThaliumStaking: 0x8C15da667477D419A3c76672e08A64C1F85f2E8A
+
+# Utility Contracts
+ThaliumSecurity: 0xF66767De6481779bdDA59733a17CB724e49B92e8
+ThaliumBridge: 0x7FEC3976E42512250Cf4Ed21CEBD3E501FC82803
+ThaliumOracle: 0x9e69bbdabC28aEa8caa10939EABDCED07827a801
+ThaliumDistribution: 0xf72935cEb0651E3c7157c4D8Fe680238d8814135
+EmergencyControls: 0xA7Dd54373213A438CB1FE18c024a93C42cB90Bf2
+
+# Network Information
+Network: BSC Testnet
+Chain ID: 97
+RPC URL: https://data-seed-prebsc-1-s1.binance.org:8545/
+Explorer: https://testnet.bscscan.com
+
+# Admin Wallet (Testnet Only)
+Admin Address: 0x310Ff4fE76974DF5977a1a269F60F7B0a83d835A
+WARNING: Generate new secure wallet for mainnet deployment

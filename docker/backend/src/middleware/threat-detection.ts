@@ -253,8 +253,26 @@ export const threatDetection = (req: Request, res: Response, next: NextFunction)
   }
 };
 
+// Paths excluded from behavioral analysis (health checks, metrics, etc.)
+const EXCLUDED_PATHS = [
+  '/health',
+  '/healthz',
+  '/ready',
+  '/readiness',
+  '/liveness',
+  '/metrics',
+  '/api/health',
+  '/api/healthz'
+];
+
 // Advanced threat detection with behavioral analysis
 export const behavioralAnalysis = (req: Request, res: Response, next: NextFunction): void => {
+  // Skip behavioral analysis for health check endpoints
+  const requestPath = req.path.toLowerCase();
+  if (EXCLUDED_PATHS.some(path => requestPath === path || requestPath.startsWith(path + '/'))) {
+    return next();
+  }
+
   const clientIP = req.ip || req.connection.remoteAddress || '';
   const now = Date.now();
 

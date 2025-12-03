@@ -1,0 +1,114 @@
+Exchange Credentials and API information
+
+Bybit
+API key: 4OUlLHWF1TZOIybbmB
+Secret: mgOU4dkyqo2UpSGUEWlofOYgppYZMQyjzmpi
+
+Kucoin
+API Passphrase: ApzorPtyLtd
+API Key: 6811caa1c1dfd9000105165a
+Secret: 7358e659-5cc7-4f6c-b284-673eddfc9a07
+
+Kraken
+API Key: HJWPi4DUG78y4r/JlUxRolUNgC2QL93/Ia5FVipRRnLSL6/551uifFaE
+Private Key: FYilsCPtlDbirUpphL73OIC/yRE0euuq3KnziF9CJHiiznwaU1P5AiY8KRd0uTVKBnvL+kiWs5eneZGi+SYAtQ==
+ 
+OKX
+Passphrase: Apzor@2025
+API Key: ff25371c-653e-4c1d-9761-376eb76960b9
+Secret: 5738F7B9C962420CFCB148B08A10A6A3
+
+Valr
+API Key: 9f8175dbc6e65b4958319bbb5b60c4d2cf109c26b37f5384b91fd56581b2dd92
+Secret: 23e45cb7b90394ab474ae6ca7b3bf9ea329aebbe7b26503c1b489716fd74ed5d
+
+Bitstamp
+API Key - 9egeB3Lj6mH5KwGTjVYnI6Z6i7XCbXJ3
+Secret - 36zIuhVH4RLF5ypZ0b9szhXlUg4iT9Uk
+
+Crypto.com
+Passkey: 082025
+Secret: cxakp_yZFBXiGNEfFiPJY2SbV8wY
+
+Binance
+API Key: MTXWVJlBP2iikO9aFV9phKsfDnTOmxZEae90pEdH8pkFLoinUD724FTOJNEVI9Mw
+API Secret: rCPypjwzQJiq78RWwcXpVZSglHKQ2Liun6GgiDiyIpOjl6McOOVjDweXo8LjpTzv
+
+Networks
+BscScan
+API Key: 82ZUSSJP4DEISGSYQAIUHSIAQTBYIMMH5X
+
+EtherScan
+API Key: II3Z1T8UDNBWE4KWIZPMQ8VP4WKJ1ZE1BD
+
+SnowScan
+API Key:  https://docs.etherscan.io/etherscan-v2
+
+ArbiScan
+API Key:  https://docs.etherscan.io/etherscan-v2
+
+TronScan
+API Key:  4e1f2efd-f64a-4ebc-8aba-8ad918b5678e
+ 
+PolygonScan
+API Key:  https://docs.etherscan.io/etherscan-v2
+
+Alchemy
+API Key: SztlY3jR1R_HBbKW588ZlWxfAYa1iHgD
+
+BaseScan
+API:  https://docs.etherscan.io/etherscan-v2
+
+Ankr
+API key: b511d6fbc7c9fd126e6e0b020a1d3578fb8db0fc6f9cf6b0f8ec558e4006db36
+
+Infura Project ID and Secret
+API Key: 38cb2ace40b3446d900e1c500dd714ab
+Secret: 6bnj8+8AzJtxX3+492ic3a4LAsklmk/oe1y7vBvkfCmdGay6sgcl+w
+
+Moralis Server URL and App ID
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjNlYjMzMzAyLWQwY2UtNDU2Mi04MzM4LTcxODQ0ZmNiMmIyOCIsIm9yZ0lkIjoiNDYxOTQ1IiwidXNlcklkIjoiNDc1MjQ1IiwidHlwZUlkIjoiNTAwYWE1MTUtZTgxYi00MGJkLWFhNDgtOWYwNGM5MTFiNzZmIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3NTM2OTk4MDQsImV4cCI6NDkwOTQ1OTgwNH0.MjtzifYvNZbFJq5t5OJ_hxrh6cBdnXuQI1StLN1pWbI
+
+The Graph
+API Key: server_38be9989620e2e658fb49c8d9eff80ed
+API Token(Authentication JWT): 
+
+0x
+API Key: 79b63bcf-7eaa-4dcb-8155-6ad5b4b60326
+
+API Access to Nedbank, OFAC and SecureCitizen
+
+Nedbank
+Google drive link: https://drive.google.com/drive/folders/1_e5abm4cxkfZMFeC0BqtA7yk_rrkSDAt?usp=drive_link 
+
+OFAC
+Google drive link: https://drive.google.com/file/d/1mNAcOQE2AMD1NX6WlnTA9AX4ZpLR0jSb/view?usp=drive_link 
+
+SecureCitizen
+Google drive link: https://drive.google.com/file/d/1gyy1p2sqyB6c0Q_LA1ArapOgZx430eTG/view?usp=drive_link 
+
+Power charts data sources
+CoinGecko 
+API Key: CG-UBg3oBHf14coAkBkMR3f6y8t
+
+CoinCap
+API Key: 26aaf883fd4af22776b27dbd342b301650e88a5398e89f6372d1873d9ec7861b
+
+CryptoCompare
+CoinDesk - https://developers.coindesk.com/documentation/data-api/introduction
+
+Bitcoin providers
+Blockstream
+Open and REST APIs offered.
+Documentation: https://docs.liquid.net/docs/welcome-to-liquid-developer-documentation-portal
+
+BlockCypher 
+Token: 42fd53e7f886485a869b7075d03d5803
+Documentation: https://www.blockcypher.com/dev/#introduction
+
+Alchemy
+API KEY:  SztlY3jR1R_HBbKW588ZlWxfAYa1iHgD
+Quicknode
+API Key: QN_2e8edc97bce74ed3be5820a8fe212fa5
+
+
