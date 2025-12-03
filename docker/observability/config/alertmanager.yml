@@ -1,23 +1,24 @@
 # ThaliumX AlertManager Configuration
 # ===================================
 # Production-ready alerting configuration with multiple notification channels
+# 
+# IMPORTANT: Before production, configure the following environment variables:
+# - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
+# - SLACK_WEBHOOK_URL
+# - PAGERDUTY_SERVICE_KEY, PAGERDUTY_SECURITY_KEY
+#
+# Or update this file directly with your notification endpoints.
 
 global:
-  # Global SMTP settings for email notifications
-  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
-  smtp_from: 'alerts@thaliumx.com'
-  smtp_auth_username: '${SMTP_USER}'
-  smtp_auth_password: '${SMTP_PASSWORD}'
-  smtp_require_tls: true
-  
-  # Slack webhook URL (set via environment variable)
-  slack_api_url: '${SLACK_WEBHOOK_URL}'
-  
-  # PagerDuty integration key
-  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
-
   # Default resolve timeout
   resolve_timeout: 5m
+  
+  # SMTP settings - uncomment and configure for email notifications
+  # smtp_smarthost: 'smtp.example.com:587'
+  # smtp_from: 'alerts@thaliumx.com'
+  # smtp_auth_username: 'alertmanager'
+  # smtp_auth_password: 'password'
+  # smtp_require_tls: true
 
 # Route tree for alert routing
 route:
@@ -38,7 +39,7 @@ route:
   
   # Child routes for specific alert types
   routes:
-    # Critical alerts - immediate notification via PagerDuty and Slack
+    # Critical alerts - immediate notification
     - match:
         severity: critical
       receiver: 'critical-alerts'
@@ -46,7 +47,7 @@ route:
       repeat_interval: 1h
       continue: true
     
-    # High severity alerts - Slack and email
+    # High severity alerts
     - match:
         severity: high
       receiver: 'high-alerts'
@@ -84,7 +85,7 @@ route:
       group_wait: 30s
       repeat_interval: 2h
     
-    # Warning alerts - email only
+    # Warning alerts
     - match:
         severity: warning
       receiver: 'warning-alerts'
@@ -116,120 +117,63 @@ inhibit_rules:
 
 # Receiver definitions
 receivers:
-  # Default receiver - email
+  # Default receiver - webhook to logging (always works)
   - name: 'default-receiver'
-    email_configs:
-      - to: 'ops@thaliumx.com'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
         send_resolved: true
-        headers:
-          Subject: '[ThaliumX] {{ .Status | toUpper }} - {{ .CommonLabels.alertname }}'
-        html: '{{ template "email.default.html" . }}'
+        max_alerts: 10
 
-  # Critical alerts - PagerDuty + Slack + Email
+  # Critical alerts - high priority
   - name: 'critical-alerts'
-    pagerduty_configs:
-      - service_key: '${PAGERDUTY_SERVICE_KEY}'
-        severity: critical
-        description: '{{ .CommonAnnotations.summary }}'
-        details:
-          firing: '{{ template "pagerduty.default.instances" .Alerts.Firing }}'
-          resolved: '{{ template "pagerduty.default.instances" .Alerts.Resolved }}'
-    slack_configs:
-      - channel: '#alerts-critical'
-        username: 'ThaliumX AlertManager'
-        icon_emoji: ':rotating_light:'
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '{{ .CommonAnnotations.summary }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/critical'
         send_resolved: true
-        actions:
-          - type: button
-            text: 'View in Grafana'
-            url: '{{ .CommonAnnotations.grafana_url }}'
-          - type: button
-            text: 'Runbook'
-            url: '{{ .CommonAnnotations.runbook_url }}'
-    email_configs:
-      - to: 'oncall@thaliumx.com,cto@thaliumx.com'
-        send_resolved: true
+    # Uncomment to enable Slack notifications:
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#alerts-critical'
+    #     username: 'ThaliumX AlertManager'
+    #     icon_emoji: ':rotating_light:'
+    #     color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+    #     title: '{{ .CommonAnnotations.summary }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    #     send_resolved: true
 
-  # High severity alerts - Slack + Email
+  # High severity alerts
   - name: 'high-alerts'
-    slack_configs:
-      - channel: '#alerts-high'
-        username: 'ThaliumX AlertManager'
-        icon_emoji: ':warning:'
-        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
-        title: '{{ .CommonAnnotations.summary }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-        send_resolved: true
-    email_configs:
-      - to: 'ops@thaliumx.com'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/high'
         send_resolved: true
 
   # Security alerts - dedicated security channel
   - name: 'security-alerts'
-    slack_configs:
-      - channel: '#security-alerts'
-        username: 'ThaliumX Security'
-        icon_emoji: ':shield:'
-        color: 'danger'
-        title: ':shield: Security Alert: {{ .CommonAnnotations.summary }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/security'
         send_resolved: true
-    email_configs:
-      - to: 'security@thaliumx.com'
-        send_resolved: true
-    pagerduty_configs:
-      - service_key: '${PAGERDUTY_SECURITY_KEY}'
-        severity: critical
 
   # Trading alerts - trading operations channel
   - name: 'trading-alerts'
-    slack_configs:
-      - channel: '#trading-alerts'
-        username: 'ThaliumX Trading'
-        icon_emoji: ':chart_with_upwards_trend:'
-        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
-        title: ':chart_with_upwards_trend: Trading Alert: {{ .CommonAnnotations.summary }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-        send_resolved: true
-    email_configs:
-      - to: 'trading-ops@thaliumx.com'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/trading'
         send_resolved: true
 
   # Infrastructure alerts
   - name: 'infrastructure-alerts'
-    slack_configs:
-      - channel: '#infrastructure'
-        username: 'ThaliumX Infra'
-        icon_emoji: ':gear:'
-        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
-        title: '{{ .CommonAnnotations.summary }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-        send_resolved: true
-    email_configs:
-      - to: 'infra@thaliumx.com'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/infrastructure'
         send_resolved: true
 
   # Database alerts
   - name: 'database-alerts'
-    slack_configs:
-      - channel: '#database-alerts'
-        username: 'ThaliumX Database'
-        icon_emoji: ':floppy_disk:'
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '{{ .CommonAnnotations.summary }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-        send_resolved: true
-    email_configs:
-      - to: 'dba@thaliumx.com'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/database'
         send_resolved: true
 
-  # Warning alerts - email only
+  # Warning alerts
   - name: 'warning-alerts'
-    email_configs:
-      - to: 'ops@thaliumx.com'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook/warning'
         send_resolved: true
 
 # Templates for notifications

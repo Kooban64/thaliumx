@@ -73,9 +73,10 @@ export class MigrationRunner {
       await this.sequelize.authenticate();
       LoggerService.info('Migration database connection established');
 
-      // Set the search path to the correct schema
-      await this.sequelize.query('SET search_path TO thaliumx, public;');
-      LoggerService.info('Migration database schema set to thaliumx');
+      // Ensure the public schema is used for migrations
+      // Tables will be created in the public schema which is the default
+      await this.sequelize.query('SET search_path TO public;');
+      LoggerService.info('Migration database schema set to public');
     } catch (error) {
       LoggerService.error('Migration database connection failed:', error);
       throw error;
@@ -105,19 +106,38 @@ export class MigrationRunner {
 
   static async loadMigrations(): Promise<Migration[]> {
     const migrationsDir = path.join(__dirname);
-    const files = fs.readdirSync(migrationsDir)
-      .filter(f => f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'runner.ts' && /^\d+/.test(f))
+    const allFiles = fs.readdirSync(migrationsDir);
+    
+    // Detect environment: check if we have .ts files (dev) or only .js files (compiled)
+    const hasTsFiles = allFiles.some(f => f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'runner.ts' && /^\d+/.test(f));
+    
+    // Filter for migration files based on environment
+    const files = allFiles
+      .filter(f => {
+        if (hasTsFiles) {
+          // Development: use .ts files
+          return f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'runner.ts' && /^\d+/.test(f);
+        } else {
+          // Production: use .js files (excluding .d.ts.map and .js.map)
+          return f.endsWith('.js') && !f.endsWith('.d.ts.map') && !f.endsWith('.js.map') && f !== 'runner.js' && /^\d+/.test(f);
+        }
+      })
       .sort();
+
+    LoggerService.info(`Found ${files.length} migration files in ${hasTsFiles ? 'TypeScript' : 'JavaScript'} mode`);
 
     const migrations: Migration[] = [];
     for (const file of files) {
       const migration = require(path.join(migrationsDir, file));
       if (migration.up && migration.down) {
+        // Normalize name by removing extension
+        const name = file.replace(/\.(ts|js)$/, '');
         migrations.push({
-          name: file.replace('.ts', ''),
+          name,
           up: migration.up,
           down: migration.down
         });
+        LoggerService.info(`Loaded migration: ${name}`);
       }
     }
     return migrations;

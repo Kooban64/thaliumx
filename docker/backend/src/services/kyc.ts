@@ -22,6 +22,7 @@ import { ballerineService } from './ballerine';
 import { AppError, createError } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
+import { kycLimitsConfig, KYCLevelConfig, KYCLevelLimits, getCurrencySymbol, formatCurrency } from '../config/kyc-limits.config';
 
 // =============================================================================
 // CORE TYPES & INTERFACES
@@ -416,8 +417,9 @@ export class KYCService {
   private static workflowDefinitionsCacheTime: number = 0;
   private static readonly WORKFLOW_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  // KYC level requirements (Industry Standard Crypto Platform)
-  private static readonly KYC_REQUIREMENTS: Record<KYCLevel, {
+  // KYC level requirements - now loaded from configurable source
+  // Use getKYCRequirements() method to access these values
+  private static getKYCRequirements(): Record<KYCLevel, {
     name: string;
     requirements: string[];
     documents: DocumentType[];
@@ -425,77 +427,122 @@ export class KYCService {
     pepCheck: boolean;
     faceVerification: boolean;
     ongoingMonitoring: boolean;
-    maxInvestmentUSD: number;
-    maxTradingVolumeUSD: number;
-    maxWithdrawalUSD: number;
+    maxInvestment: number;
+    maxTradingVolume: number;
+    maxWithdrawal: number;
     description: string;
-  }> = {
-    [KYCLevel.L0]: {
-      name: 'Web3 Basic',
-      requirements: ['web3_wallet_connection'],
-      documents: [],
-      sanctionsCheck: false,
-      pepCheck: false,
-      faceVerification: false,
-      ongoingMonitoring: false,
-      maxInvestmentUSD: 10000, // $10k max investment
-      maxTradingVolumeUSD: 0, // No trading allowed
-      maxWithdrawalUSD: 1000, // $1k max withdrawal
-      description: 'Basic Web3 wallet verification'
-    },
-    [KYCLevel.L1]: {
-      name: 'Basic Verification',
-      requirements: ['email_verified', 'phone_verified'],
-      documents: [],
-      sanctionsCheck: true,
-      pepCheck: false,
-      faceVerification: false,
-      ongoingMonitoring: false,
-      maxInvestmentUSD: 50000, // $50k max investment
-      maxTradingVolumeUSD: 25000, // $25k max trading
-      maxWithdrawalUSD: 5000, // $5k max withdrawal
-      description: 'Email and phone verification required'
-    },
-    [KYCLevel.L2]: {
-      name: 'Identity Verified',
-      requirements: ['email_verified', 'phone_verified', 'identity_document', 'proof_of_address', 'biometric'],
-      documents: [DocumentType.NATIONAL_ID, DocumentType.PROOF_OF_ADDRESS, DocumentType.BIOMETRIC_DATA] as DocumentType[],
-      sanctionsCheck: true,
-      pepCheck: true,
-      faceVerification: true,
-      ongoingMonitoring: true,
-      maxInvestmentUSD: 250000, // $250k max investment
-      maxTradingVolumeUSD: 100000, // $100k max trading
-      maxWithdrawalUSD: 25000, // $25k max withdrawal
-      description: 'Government ID, address, and biometric verification required'
-    },
-    [KYCLevel.L3]: {
-      name: 'Enhanced Verification',
-      requirements: ['email_verified', 'phone_verified', 'identity_document', 'proof_of_address', 'biometric', 'source_of_funds', 'enhanced_screening'],
-      documents: [DocumentType.PASSPORT, DocumentType.PROOF_OF_ADDRESS, DocumentType.PROOF_OF_INCOME, DocumentType.SOURCE_OF_FUNDS, DocumentType.BIOMETRIC_DATA] as DocumentType[],
-      sanctionsCheck: true,
-      pepCheck: true,
-      faceVerification: true,
-      ongoingMonitoring: true,
-      maxInvestmentUSD: 1000000, // $1M max investment
-      maxTradingVolumeUSD: 500000, // $500k max trading
-      maxWithdrawalUSD: 100000, // $100k max withdrawal
-      description: 'Full due diligence and source of funds verification'
-    },
-    [KYCLevel.INSTITUTIONAL]: {
-      name: 'Institutional/KYB Verification',
-      requirements: ['business_registration', 'incorporation_documents', 'ownership_structure', 'authorized_signatories', 'source_of_funds', 'enhanced_screening', 'regulatory_licenses'],
-      documents: [DocumentType.BUSINESS_LICENSE, DocumentType.ARTICLES_OF_INCORPORATION, DocumentType.CERTIFICATE_OF_INCORPORATION, DocumentType.BANK_STATEMENT, DocumentType.PROOF_OF_ADDRESS] as DocumentType[],
-      sanctionsCheck: true,
-      pepCheck: true,
-      faceVerification: true,
-      ongoingMonitoring: true,
-      maxInvestmentUSD: 10000000, // $10M max investment for institutions
-      maxTradingVolumeUSD: 5000000, // $5M max trading
-      maxWithdrawalUSD: 1000000, // $1M max withdrawal
-      description: 'Full institutional/KYB verification for businesses'
-    }
-  };
+  }> {
+    // Initialize config if not already done
+    kycLimitsConfig.initialize();
+    
+    const allConfigs = kycLimitsConfig.getAllKYCLevelConfigs();
+    
+    // Map document type strings to DocumentType enum
+    const mapDocuments = (docs: string[]): DocumentType[] => {
+      return docs.map(d => DocumentType[d as keyof typeof DocumentType]).filter(Boolean);
+    };
+    
+    return {
+      [KYCLevel.L0]: {
+        name: allConfigs.L0?.name || 'Web3 Basic',
+        requirements: allConfigs.L0?.requirements || ['web3_wallet_connection'],
+        documents: mapDocuments(allConfigs.L0?.documents || []),
+        sanctionsCheck: allConfigs.L0?.sanctionsCheck ?? false,
+        pepCheck: allConfigs.L0?.pepCheck ?? false,
+        faceVerification: allConfigs.L0?.faceVerification ?? false,
+        ongoingMonitoring: allConfigs.L0?.ongoingMonitoring ?? false,
+        maxInvestment: allConfigs.L0?.limits?.maxInvestment ?? 185000,
+        maxTradingVolume: allConfigs.L0?.limits?.maxTrading ?? 0,
+        maxWithdrawal: allConfigs.L0?.limits?.maxWithdrawal ?? 18500,
+        description: allConfigs.L0?.description || 'Basic Web3 wallet verification'
+      },
+      [KYCLevel.L1]: {
+        name: allConfigs.L1?.name || 'Basic Verification',
+        requirements: allConfigs.L1?.requirements || ['email_verified', 'phone_verified'],
+        documents: mapDocuments(allConfigs.L1?.documents || []),
+        sanctionsCheck: allConfigs.L1?.sanctionsCheck ?? true,
+        pepCheck: allConfigs.L1?.pepCheck ?? false,
+        faceVerification: allConfigs.L1?.faceVerification ?? false,
+        ongoingMonitoring: allConfigs.L1?.ongoingMonitoring ?? false,
+        maxInvestment: allConfigs.L1?.limits?.maxInvestment ?? 925000,
+        maxTradingVolume: allConfigs.L1?.limits?.maxTrading ?? 462500,
+        maxWithdrawal: allConfigs.L1?.limits?.maxWithdrawal ?? 92500,
+        description: allConfigs.L1?.description || 'Email and phone verification required'
+      },
+      [KYCLevel.L2]: {
+        name: allConfigs.L2?.name || 'Identity Verified',
+        requirements: allConfigs.L2?.requirements || ['email_verified', 'phone_verified', 'identity_document', 'proof_of_address', 'biometric'],
+        documents: mapDocuments(allConfigs.L2?.documents || ['NATIONAL_ID', 'PROOF_OF_ADDRESS', 'BIOMETRIC_DATA']),
+        sanctionsCheck: allConfigs.L2?.sanctionsCheck ?? true,
+        pepCheck: allConfigs.L2?.pepCheck ?? true,
+        faceVerification: allConfigs.L2?.faceVerification ?? true,
+        ongoingMonitoring: allConfigs.L2?.ongoingMonitoring ?? true,
+        maxInvestment: allConfigs.L2?.limits?.maxInvestment ?? 4625000,
+        maxTradingVolume: allConfigs.L2?.limits?.maxTrading ?? 1850000,
+        maxWithdrawal: allConfigs.L2?.limits?.maxWithdrawal ?? 462500,
+        description: allConfigs.L2?.description || 'Government ID, address, and biometric verification required'
+      },
+      [KYCLevel.L3]: {
+        name: allConfigs.L3?.name || 'Enhanced Verification',
+        requirements: allConfigs.L3?.requirements || ['email_verified', 'phone_verified', 'identity_document', 'proof_of_address', 'biometric', 'source_of_funds', 'enhanced_screening'],
+        documents: mapDocuments(allConfigs.L3?.documents || ['PASSPORT', 'PROOF_OF_ADDRESS', 'PROOF_OF_INCOME', 'SOURCE_OF_FUNDS', 'BIOMETRIC_DATA']),
+        sanctionsCheck: allConfigs.L3?.sanctionsCheck ?? true,
+        pepCheck: allConfigs.L3?.pepCheck ?? true,
+        faceVerification: allConfigs.L3?.faceVerification ?? true,
+        ongoingMonitoring: allConfigs.L3?.ongoingMonitoring ?? true,
+        maxInvestment: allConfigs.L3?.limits?.maxInvestment ?? 18500000,
+        maxTradingVolume: allConfigs.L3?.limits?.maxTrading ?? 9250000,
+        maxWithdrawal: allConfigs.L3?.limits?.maxWithdrawal ?? 1850000,
+        description: allConfigs.L3?.description || 'Full due diligence and source of funds verification'
+      },
+      [KYCLevel.INSTITUTIONAL]: {
+        name: allConfigs.INSTITUTIONAL?.name || 'Institutional/KYB Verification',
+        requirements: allConfigs.INSTITUTIONAL?.requirements || ['business_registration', 'incorporation_documents', 'ownership_structure', 'authorized_signatories', 'source_of_funds', 'enhanced_screening', 'regulatory_licenses'],
+        documents: mapDocuments(allConfigs.INSTITUTIONAL?.documents || ['BUSINESS_LICENSE', 'ARTICLES_OF_INCORPORATION', 'CERTIFICATE_OF_INCORPORATION', 'BANK_STATEMENT', 'PROOF_OF_ADDRESS']),
+        sanctionsCheck: allConfigs.INSTITUTIONAL?.sanctionsCheck ?? true,
+        pepCheck: allConfigs.INSTITUTIONAL?.pepCheck ?? true,
+        faceVerification: allConfigs.INSTITUTIONAL?.faceVerification ?? true,
+        ongoingMonitoring: allConfigs.INSTITUTIONAL?.ongoingMonitoring ?? true,
+        maxInvestment: allConfigs.INSTITUTIONAL?.limits?.maxInvestment ?? 185000000,
+        maxTradingVolume: allConfigs.INSTITUTIONAL?.limits?.maxTrading ?? 92500000,
+        maxWithdrawal: allConfigs.INSTITUTIONAL?.limits?.maxWithdrawal ?? 18500000,
+        description: allConfigs.INSTITUTIONAL?.description || 'Full institutional/KYB verification for businesses'
+      }
+    };
+  }
+
+  /**
+   * Get KYC limits for a specific level (public accessor)
+   */
+  public static getKYCLimitsForLevel(level: KYCLevel): {
+    maxInvestment: number;
+    maxTradingVolume: number;
+    maxWithdrawal: number;
+    currencySymbol: string;
+  } {
+    const requirements = this.getKYCRequirements();
+    const levelConfig = requirements[level];
+    return {
+      maxInvestment: levelConfig.maxInvestment,
+      maxTradingVolume: levelConfig.maxTradingVolume,
+      maxWithdrawal: levelConfig.maxWithdrawal,
+      currencySymbol: getCurrencySymbol()
+    };
+  }
+
+  /**
+   * Format amount with currency symbol
+   */
+  public static formatAmount(amount: number): string {
+    return formatCurrency(amount);
+  }
+
+  /**
+   * Get currency symbol
+   */
+  public static getCurrencySymbol(): string {
+    return getCurrencySymbol();
+  }
 
   /**
    * Initialize KYC Service
@@ -611,7 +658,8 @@ export class KYCService {
       this.users.set(id, user);
 
       // Initialize monitoring if required
-      if (this.KYC_REQUIREMENTS[requestedLevel].ongoingMonitoring) {
+      const requirements = this.getKYCRequirements();
+      if (requirements[requestedLevel].ongoingMonitoring) {
         await this.initializeOngoingMonitoring(user);
       }
 
@@ -666,7 +714,8 @@ export class KYCService {
       }
 
       // Validate document type for KYC level
-      const requirements = this.KYC_REQUIREMENTS[user.kycLevel];
+      const allRequirements = this.getKYCRequirements();
+      const requirements = allRequirements[user.kycLevel];
       if (requirements.documents.length > 0 && !requirements.documents.includes(documentType)) {
         throw createError(`Document type ${documentType} not required for ${user.kycLevel} KYC level`, 400, 'INVALID_DOCUMENT_TYPE');
       }
@@ -881,7 +930,8 @@ export class KYCService {
       user.updatedAt = new Date();
 
       // Update ongoing monitoring if required
-      const requirements = this.KYC_REQUIREMENTS[newLevel];
+      const allRequirements = this.getKYCRequirements();
+      const requirements = allRequirements[newLevel];
       if (requirements.ongoingMonitoring && !user.ongoingMonitoring.enabled) {
         await this.initializeOngoingMonitoring(user);
       }
@@ -1214,7 +1264,8 @@ export class KYCService {
 
   private static async initializeOngoingMonitoring(user: KYCUser): Promise<void> {
     try {
-      const requirements = this.KYC_REQUIREMENTS[user.kycLevel];
+      const allRequirements = this.getKYCRequirements();
+      const requirements = allRequirements[user.kycLevel];
       if (!requirements.ongoingMonitoring) {
         return;
       }

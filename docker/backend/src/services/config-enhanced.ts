@@ -417,10 +417,11 @@ export class ConfigService {
       };
 
       // Authenticate with Vault
-      let token = this.vaultConfig.token;
+      let token: string | undefined = this.vaultConfig.token;
 
       if (!token && this.vaultConfig.roleId && this.vaultConfig.secretId) {
-        token = await this.authenticateWithAppRole();
+        const appRoleToken = await this.authenticateWithAppRole();
+        token = appRoleToken ?? undefined;
       }
 
       if (!token) {

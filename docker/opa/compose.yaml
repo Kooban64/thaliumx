@@ -1,6 +1,6 @@
 # Thaliumx OPA (Open Policy Agent)
 # =================================
-# Policy-based authorization service
+# Policy-based authorization service with configurable parameters
 
 services:
   opa:
@@ -14,15 +14,20 @@ services:
       - "--log-level=info"
       - "--log-format=json"
       - "--set=decision_logs.console=true"
+      - "--set=status.console=true"
+      - "--bundle"
       - "/policies"
     ports:
       - "8181:8181"
     volumes:
       - ./policies:/policies:ro
+      - opa_data:/data
+    environment:
+      - OPA_LOG_LEVEL=info
     networks:
       - thaliumx-net
     healthcheck:
-      test: ["CMD", "/opa", "eval", "true"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8181/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,6 +37,18 @@ services:
       - "com.thaliumx.service=opa"
       - "com.thaliumx.component=security"
       - "com.thaliumx.description=Open Policy Agent for Authorization"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+volumes:
+  opa_data:
+    name: thaliumx-opa-data
 
 networks:
   thaliumx-net:

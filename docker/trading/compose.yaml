@@ -28,8 +28,8 @@ services:
     environment:
       RUST_LOG: ${RUST_LOG:-info}
       RUN_MODE: ${RUN_MODE:-production}
-      # Database - credentials from Vault or env
-      DATABASE_URL: postgresql://${POSTGRES_USER:-thaliumx}:${POSTGRES_PASSWORD:-ThaliumX2025}@thaliumx-postgres:5432/${POSTGRES_DB:-thaliumx}
+      # Database - TimescaleDB for trading data
+      DATABASE_URL: postgresql://${TIMESCALE_USER:-dingir}:${TIMESCALE_PASSWORD:-ThaliumX2025}@thaliumx-timescaledb:5432/${TIMESCALE_DB:-exchange}
       # Redis
       REDIS_HOST: thaliumx-redis
       REDIS_PORT: 6379
@@ -77,8 +77,8 @@ services:
     environment:
       RUST_LOG: ${RUST_LOG:-info}
       RUN_MODE: ${RUN_MODE:-production}
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-thaliumx}:${POSTGRES_PASSWORD:-ThaliumX2025}@thaliumx-postgres:5432/${POSTGRES_DB:-thaliumx}
+      # Database - TimescaleDB for trading data
+      DATABASE_URL: postgresql://${TIMESCALE_USER:-dingir}:${TIMESCALE_PASSWORD:-ThaliumX2025}@thaliumx-timescaledb:5432/${TIMESCALE_DB:-exchange}
       # Redis
       REDIS_HOST: thaliumx-redis
       REDIS_PORT: 6379

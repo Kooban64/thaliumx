@@ -17,6 +17,7 @@ import { ConfigService } from './config';
 import { EventStreamingService } from './event-streaming';
 import { AppError, createError } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
+import { kycLimitsConfig, RoleTransactionLimits as ConfigRoleTransactionLimits, getCurrencySymbol, formatCurrency } from '../config/kyc-limits.config';
 
 // =============================================================================
 // ENHANCED RBAC TYPES FROM UNIFIED PROJECT
@@ -533,7 +534,7 @@ export class RBACService {
       updatedAt: new Date()
     },
 
-    // Broker Roles
+    // Broker Roles - Transaction limits loaded from configuration
     {
       id: 'broker-admin',
       name: 'Broker Administrator',
@@ -541,16 +542,16 @@ export class RBACService {
       tenantType: TenantType.BROKER,
       level: RoleLevel.ADMIN,
       permissions: this.PERMISSIONS.filter(p => p.tenantType === TenantType.BROKER),
-      transactionLimits: {
-        maxDailyVolume: 1000000,
-        maxMonthlyVolume: 10000000,
-        maxSingleTransaction: 100000,
-        maxWithdrawalDaily: 500000,
-        maxWithdrawalMonthly: 5000000,
-        maxDepositDaily: 1000000,
-        maxDepositMonthly: 10000000,
-        currencies: ['USD', 'EUR', 'BTC', 'ETH', 'THAL']
-      },
+      transactionLimits: this.getConfigurableRoleLimits('broker-admin', {
+        maxDailyVolume: 18500000,
+        maxMonthlyVolume: 185000000,
+        maxSingleTransaction: 1850000,
+        maxWithdrawalDaily: 9250000,
+        maxWithdrawalMonthly: 92500000,
+        maxDepositDaily: 18500000,
+        maxDepositMonthly: 185000000,
+        currencies: ['ZAR', 'USD', 'EUR', 'BTC', 'ETH', 'THAL']
+      }),
       isSystemRole: true,
       canBeAssigned: true,
       requiresApproval: true,
@@ -588,16 +589,16 @@ export class RBACService {
       tenantType: TenantType.BROKER,
       level: RoleLevel.MANAGER,
       permissions: this.PERMISSIONS.filter(p => p.id.includes('finance') || p.id.includes('wallet')),
-      transactionLimits: {
-        maxDailyVolume: 500000,
-        maxMonthlyVolume: 5000000,
-        maxSingleTransaction: 50000,
-        maxWithdrawalDaily: 250000,
-        maxWithdrawalMonthly: 2500000,
-        maxDepositDaily: 500000,
-        maxDepositMonthly: 5000000,
-        currencies: ['USD', 'EUR', 'BTC', 'ETH', 'THAL']
-      },
+      transactionLimits: this.getConfigurableRoleLimits('broker-finance', {
+        maxDailyVolume: 9250000,
+        maxMonthlyVolume: 92500000,
+        maxSingleTransaction: 925000,
+        maxWithdrawalDaily: 4625000,
+        maxWithdrawalMonthly: 46250000,
+        maxDepositDaily: 9250000,
+        maxDepositMonthly: 92500000,
+        currencies: ['ZAR', 'USD', 'EUR', 'BTC', 'ETH', 'THAL']
+      }),
       isSystemRole: true,
       canBeAssigned: true,
       requiresApproval: true,
@@ -634,16 +635,16 @@ export class RBACService {
       tenantType: TenantType.BROKER,
       level: RoleLevel.USER,
       permissions: this.PERMISSIONS.filter(p => p.id.includes('orders') || p.id.includes('trading')),
-      transactionLimits: {
-        maxDailyVolume: 100000,
-        maxMonthlyVolume: 1000000,
-        maxSingleTransaction: 10000,
-        maxWithdrawalDaily: 50000,
-        maxWithdrawalMonthly: 500000,
-        maxDepositDaily: 100000,
-        maxDepositMonthly: 1000000,
-        currencies: ['USD', 'EUR', 'BTC', 'ETH', 'THAL']
-      },
+      transactionLimits: this.getConfigurableRoleLimits('broker-ops', {
+        maxDailyVolume: 1850000,
+        maxMonthlyVolume: 18500000,
+        maxSingleTransaction: 185000,
+        maxWithdrawalDaily: 925000,
+        maxWithdrawalMonthly: 9250000,
+        maxDepositDaily: 1850000,
+        maxDepositMonthly: 18500000,
+        currencies: ['ZAR', 'USD', 'EUR', 'BTC', 'ETH', 'THAL']
+      }),
       isSystemRole: true,
       canBeAssigned: true,
       requiresApproval: false,
@@ -720,7 +721,7 @@ export class RBACService {
       updatedAt: new Date()
     },
 
-    // End-User Roles
+    // End-User Roles - Transaction limits loaded from configuration
     {
       id: 'user-trader',
       name: 'Trader',
@@ -728,16 +729,16 @@ export class RBACService {
       tenantType: TenantType.BROKER,
       level: RoleLevel.USER,
       permissions: this.PERMISSIONS.filter(p => p.id.startsWith('user:')),
-      transactionLimits: {
-        maxDailyVolume: 10000,
-        maxMonthlyVolume: 100000,
-        maxSingleTransaction: 1000,
-        maxWithdrawalDaily: 5000,
-        maxWithdrawalMonthly: 50000,
-        maxDepositDaily: 10000,
-        maxDepositMonthly: 100000,
-        currencies: ['USD', 'EUR', 'BTC', 'ETH', 'THAL']
-      },
+      transactionLimits: this.getConfigurableRoleLimits('user-trader', {
+        maxDailyVolume: 185000,
+        maxMonthlyVolume: 1850000,
+        maxSingleTransaction: 18500,
+        maxWithdrawalDaily: 92500,
+        maxWithdrawalMonthly: 925000,
+        maxDepositDaily: 185000,
+        maxDepositMonthly: 1850000,
+        currencies: ['ZAR', 'USD', 'EUR', 'BTC', 'ETH', 'THAL']
+      }),
       isSystemRole: true,
       canBeAssigned: true,
       requiresApproval: false,
@@ -751,16 +752,16 @@ export class RBACService {
       tenantType: TenantType.BROKER,
       level: RoleLevel.USER,
       permissions: this.PERMISSIONS.filter(p => p.id.startsWith('user:')),
-      transactionLimits: {
-        maxDailyVolume: 100000,
-        maxMonthlyVolume: 1000000,
-        maxSingleTransaction: 10000,
-        maxWithdrawalDaily: 50000,
-        maxWithdrawalMonthly: 500000,
-        maxDepositDaily: 100000,
-        maxDepositMonthly: 1000000,
-        currencies: ['USD', 'EUR', 'BTC', 'ETH', 'THAL']
-      },
+      transactionLimits: this.getConfigurableRoleLimits('user-institutional', {
+        maxDailyVolume: 1850000,
+        maxMonthlyVolume: 18500000,
+        maxSingleTransaction: 185000,
+        maxWithdrawalDaily: 925000,
+        maxWithdrawalMonthly: 9250000,
+        maxDepositDaily: 1850000,
+        maxDepositMonthly: 18500000,
+        currencies: ['ZAR', 'USD', 'EUR', 'BTC', 'ETH', 'THAL']
+      }),
       isSystemRole: true,
       canBeAssigned: true,
       requiresApproval: true,
@@ -774,16 +775,16 @@ export class RBACService {
       tenantType: TenantType.BROKER,
       level: RoleLevel.USER,
       permissions: this.PERMISSIONS.filter(p => p.id.startsWith('user:')),
-      transactionLimits: {
-        maxDailyVolume: 50000,
-        maxMonthlyVolume: 500000,
-        maxSingleTransaction: 5000,
-        maxWithdrawalDaily: 25000,
-        maxWithdrawalMonthly: 250000,
-        maxDepositDaily: 50000,
-        maxDepositMonthly: 500000,
-        currencies: ['USD', 'EUR', 'BTC', 'ETH', 'THAL']
-      },
+      transactionLimits: this.getConfigurableRoleLimits('user-vip', {
+        maxDailyVolume: 925000,
+        maxMonthlyVolume: 9250000,
+        maxSingleTransaction: 92500,
+        maxWithdrawalDaily: 462500,
+        maxWithdrawalMonthly: 4625000,
+        maxDepositDaily: 925000,
+        maxDepositMonthly: 9250000,
+        currencies: ['ZAR', 'USD', 'EUR', 'BTC', 'ETH', 'THAL']
+      }),
       isSystemRole: true,
       canBeAssigned: true,
       requiresApproval: true,
@@ -791,6 +792,45 @@ export class RBACService {
       updatedAt: new Date()
     }
   ];
+
+  /**
+   * Get configurable role limits from environment or use defaults
+   */
+  private static getConfigurableRoleLimits(roleId: string, defaults: TransactionLimits): TransactionLimits {
+    try {
+      kycLimitsConfig.initialize();
+      const configLimits = kycLimitsConfig.getRoleLimits(roleId);
+      if (configLimits) {
+        return {
+          maxDailyVolume: configLimits.maxDailyVolume,
+          maxMonthlyVolume: configLimits.maxMonthlyVolume,
+          maxSingleTransaction: configLimits.maxSingleTransaction,
+          maxWithdrawalDaily: configLimits.maxWithdrawalDaily,
+          maxWithdrawalMonthly: configLimits.maxWithdrawalMonthly,
+          maxDepositDaily: configLimits.maxDepositDaily,
+          maxDepositMonthly: configLimits.maxDepositMonthly,
+          currencies: configLimits.currencies
+        };
+      }
+    } catch (error) {
+      // Use defaults on error
+    }
+    return defaults;
+  }
+
+  /**
+   * Get currency symbol for display
+   */
+  public static getCurrencySymbol(): string {
+    return getCurrencySymbol();
+  }
+
+  /**
+   * Format amount with currency
+   */
+  public static formatAmount(amount: number): string {
+    return formatCurrency(amount);
+  }
 
   /**
    * Initialize RBAC Service

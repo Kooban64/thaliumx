@@ -54,6 +54,34 @@ export default function PlatformAdmin() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Policy Management</CardTitle>
+            <CardDescription>OPA policies and compliance rules</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" asChild>
+                <a href="/admin/policies">Manage Policies</a>
+              </Button>
+              <Button size="sm" variant="outline">AML Rules</Button>
+              <Button size="sm" variant="outline">Security</Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance & Audit</CardTitle>
+            <CardDescription>Compliance reports and audit logs</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline">Reports</Button>
+              <Button size="sm" variant="outline">Audit Log</Button>
+              <Button size="sm" variant="outline">SAR Filing</Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -80,6 +80,7 @@ import adminMigrationRouter from './routes/admin-migration';
 import advancedMarginRouter from './routes/advanced-margin';
 import web3WalletRouter from './routes/web3-wallet';
 import deviceFingerprintRouter from './routes/device-fingerprint';
+import policyManagementRouter from './routes/policy-management';
 
 // Import services
 import { DatabaseService } from './services/database';
@@ -806,6 +807,7 @@ class ThaliumXBackend {
     this.app.use('/api/advanced-margin', advancedMarginRouter);
     this.app.use('/api/web3-wallet', web3WalletRouter);
     this.app.use('/api/security', deviceFingerprintRouter);
+    this.app.use('/api/admin/policies', policyManagementRouter);
 
     // API documentation endpoint
     this.app.get('/api/docs', (_req, res) => {

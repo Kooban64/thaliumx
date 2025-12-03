@@ -180,7 +180,7 @@ api_call PUT "/routes/3" '{
             "http_to_https": true
         },
         "proxy-rewrite": {
-            "uri": "/token-presale$request_uri"
+            "uri": "/presale$request_uri"
         }
     },
     "priority": 10

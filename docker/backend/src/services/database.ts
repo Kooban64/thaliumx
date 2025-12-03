@@ -528,29 +528,30 @@ export class DatabaseService {
 
     this.models.set('AuditLog', AuditLogModel);
 
-    // Order Model
+    // Order Model - matches existing database schema with snake_case columns
     const OrderModel = this.sequelize.define('Order', {
-      id: { type: DataTypes.STRING, primaryKey: true },
-      userId: { type: DataTypes.STRING, allowNull: false },
-      tenantId: { type: DataTypes.STRING, allowNull: false },
-      symbol: { type: DataTypes.STRING, allowNull: false },
-      side: { type: DataTypes.ENUM('buy', 'sell'), allowNull: false },
-      type: { type: DataTypes.ENUM('market', 'limit', 'stop', 'stop_limit'), allowNull: false },
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      tenantId: { type: DataTypes.UUID, allowNull: false, field: 'tenant_id' },
+      userId: { type: DataTypes.UUID, allowNull: false, field: 'user_id' },
+      accountId: { type: DataTypes.UUID, allowNull: false, field: 'account_id' },
+      symbol: { type: DataTypes.STRING(20), allowNull: false },
+      side: { type: DataTypes.STRING(10), allowNull: false },
+      type: { type: DataTypes.STRING(20), allowNull: false, field: 'order_type' },
       quantity: { type: DataTypes.DECIMAL(20, 8), allowNull: false },
       price: { type: DataTypes.DECIMAL(20, 8), allowNull: true },
-      stopPrice: { type: DataTypes.DECIMAL(20, 8), allowNull: true },
-      status: { type: DataTypes.ENUM('pending', 'partial', 'filled', 'cancelled', 'rejected'), allowNull: false },
-      filledQuantity: { type: DataTypes.DECIMAL(20, 8), allowNull: false, defaultValue: 0 },
-      averagePrice: { type: DataTypes.DECIMAL(20, 8), allowNull: true },
-      expiresAt: { type: DataTypes.DATE, allowNull: true }
+      filledQuantity: { type: DataTypes.DECIMAL(20, 8), allowNull: true, defaultValue: 0, field: 'filled_quantity' },
+      averagePrice: { type: DataTypes.DECIMAL(20, 8), allowNull: true, field: 'average_price' },
+      status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'pending' },
+      timeInForce: { type: DataTypes.STRING(10), allowNull: true, defaultValue: 'GTC', field: 'time_in_force' },
+      metadata: { type: DataTypes.JSONB, allowNull: true, defaultValue: {} }
     }, {
       tableName: 'orders',
       timestamps: true,
+      underscored: true,
       indexes: [
-        { fields: ['userId'] },
-        { fields: ['tenantId'] },
-        { fields: ['symbol'] },
-        { fields: ['status'] }
+        { fields: ['tenant_id', 'user_id'] },
+        { fields: ['tenant_id', 'symbol'] },
+        { fields: ['tenant_id', 'status'] }
       ]
     });
 
@@ -584,21 +585,31 @@ export class DatabaseService {
 
     this.models.set('Trade', TradeModel);
 
-    // TradingPair Model
+    // TradingPair Model - matches existing database schema with snake_case columns
     const TradingPairModel = this.sequelize.define('TradingPair', {
-      symbol: { type: DataTypes.STRING, primaryKey: true },
-      baseAsset: { type: DataTypes.STRING, allowNull: false },
-      quoteAsset: { type: DataTypes.STRING, allowNull: false },
-      status: { type: DataTypes.ENUM('active', 'inactive', 'suspended'), allowNull: false },
-      minQuantity: { type: DataTypes.DECIMAL(20, 8), allowNull: false },
-      maxQuantity: { type: DataTypes.DECIMAL(20, 8), allowNull: false },
-      tickSize: { type: DataTypes.DECIMAL(20, 8), allowNull: false },
-      stepSize: { type: DataTypes.DECIMAL(20, 8), allowNull: false },
-      makerFee: { type: DataTypes.DECIMAL(5, 4), allowNull: false },
-      takerFee: { type: DataTypes.DECIMAL(5, 4), allowNull: false }
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      tenantId: { type: DataTypes.UUID, allowNull: false, field: 'tenant_id' },
+      symbol: { type: DataTypes.STRING(50), allowNull: false },
+      baseAsset: { type: DataTypes.STRING(20), allowNull: false, field: 'base_asset' },
+      quoteAsset: { type: DataTypes.STRING(20), allowNull: false, field: 'quote_asset' },
+      status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'active' },
+      minQuantity: { type: DataTypes.DECIMAL(30, 8), allowNull: true, field: 'min_amount' },
+      maxQuantity: { type: DataTypes.DECIMAL(30, 8), allowNull: true, field: 'max_amount' },
+      minPrice: { type: DataTypes.DECIMAL(30, 8), allowNull: true, field: 'min_price' },
+      maxPrice: { type: DataTypes.DECIMAL(30, 8), allowNull: true, field: 'max_price' },
+      tickSize: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 8, field: 'price_precision' },
+      stepSize: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 8, field: 'amount_precision' },
+      makerFee: { type: DataTypes.DECIMAL(10, 6), allowNull: true, defaultValue: 0.001, field: 'maker_fee' },
+      takerFee: { type: DataTypes.DECIMAL(10, 6), allowNull: true, defaultValue: 0.001, field: 'taker_fee' }
     }, {
       tableName: 'trading_pairs',
-      timestamps: true
+      timestamps: true,
+      underscored: true,
+      indexes: [
+        { fields: ['tenant_id'] },
+        { fields: ['symbol'] },
+        { fields: ['status'] }
+      ]
     });
 
     this.models.set('TradingPair', TradingPairModel);

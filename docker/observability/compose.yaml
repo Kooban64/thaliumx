@@ -4,6 +4,30 @@
 # Blackbox Exporter, cAdvisor, Postgres Exporter, Redis Exporter
 
 services:
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: thaliumx-alertmanager
+    hostname: thaliumx-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://alertmanager:9093'
+      - '--cluster.listen-address='
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./config/alertmanager-templates:/etc/alertmanager/templates:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - thaliumx-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: thaliumx-prometheus
@@ -22,6 +46,8 @@ services:
       - prometheus_data:/prometheus
     networks:
       - thaliumx-net
+    depends_on:
+      - alertmanager
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
       interval: 10s
@@ -218,6 +244,8 @@ services:
       retries: 5
 
 volumes:
+  alertmanager_data:
+    name: thaliumx-alertmanager-data
   prometheus_data:
     name: thaliumx-prometheus-data
   grafana_data:
