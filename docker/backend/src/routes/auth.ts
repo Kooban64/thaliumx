@@ -42,7 +42,6 @@ export const validateLogin = (req: Request, res: Response, next: NextFunction): 
       requestId: req.headers['x-request-id'] || 'unknown'
     });
     return;
-    return;
   }
 
   if (!/\S+@\S+\.\S+/.test(email)) {
@@ -52,7 +51,6 @@ export const validateLogin = (req: Request, res: Response, next: NextFunction): 
       timestamp: new Date(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });
-    return;
     return;
   }
 
@@ -70,7 +68,6 @@ export const validateRegister = (req: Request, res: Response, next: NextFunction
       requestId: req.headers['x-request-id'] || 'unknown'
     });
     return;
-    return;
   }
 
   if (!/\S+@\S+\.\S+/.test(email)) {
@@ -81,7 +78,6 @@ export const validateRegister = (req: Request, res: Response, next: NextFunction
       requestId: req.headers['x-request-id'] || 'unknown'
     });
     return;
-    return;
   }
 
   if (password.length < 8) {
@@ -91,7 +87,6 @@ export const validateRegister = (req: Request, res: Response, next: NextFunction
       timestamp: new Date(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });
-    return;
     return;
   }
 
@@ -109,7 +104,6 @@ export const validateRefreshToken = (req: Request, res: Response, next: NextFunc
       requestId: req.headers['x-request-id'] || 'unknown'
     });
     return;
-    return;
   }
 
   next();
@@ -126,7 +120,6 @@ export const validateChangePassword = (req: Request, res: Response, next: NextFu
       requestId: req.headers['x-request-id'] || 'unknown'
     });
     return;
-    return;
   }
 
   if (newPassword.length < 8) {
@@ -136,7 +129,6 @@ export const validateChangePassword = (req: Request, res: Response, next: NextFu
       timestamp: new Date(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });
-    return;
     return;
   }
 
@@ -154,7 +146,6 @@ export const validateResetPassword = (req: Request, res: Response, next: NextFun
       requestId: req.headers['x-request-id'] || 'unknown'
     });
     return;
-    return;
   }
 
   if (!/\S+@\S+\.\S+/.test(email)) {
@@ -164,7 +155,6 @@ export const validateResetPassword = (req: Request, res: Response, next: NextFun
       timestamp: new Date(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });
-    return;
     return;
   }
 

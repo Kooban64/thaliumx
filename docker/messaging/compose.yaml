@@ -13,7 +13,7 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@thaliumx-kafka:9093
-      CLUSTER_ID: thaliumx-kafka-cluster-01
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       # Listeners
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://thaliumx-kafka:9092
@@ -26,7 +26,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      # Allow auto topic creation
+      # Auto topic creation
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       # Heap settings
       KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"

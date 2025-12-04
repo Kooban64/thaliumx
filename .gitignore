@@ -2,10 +2,27 @@
 node_modules/
 vendor/
 
-# Environment files with secrets
+# Environment files with secrets - CRITICAL: Never commit these
+.env
 .env.local
 .env.*.local
 *.env.secret
+docker/.env
+docker/*/.env
+docker/core/core.env
+docker/trading/trading.env
+docker/fintech/config/ballerine.env
+docker/backend/.env
+**/*.env
+!**/*.env.example
+!**/*.env.template
+!**/*.env.sample
+
+# Blockchain sensitive files
+blockchain-contracts/testnet.env
+blockchain-contracts/mainnet.env
+blockchain-contracts/.env
+blockchain-contracts/**/*.env
 
 # IDE
 .idea/
@@ -36,7 +53,7 @@ __pycache__/
 *.temp
 .cache/
 
-# Secrets (if any local files)
+# Secrets and sensitive files
 *.pem
 *.key
 *.crt
@@ -44,3 +61,34 @@ __pycache__/
 !docker/*/config/*.key
 docker/vault/init-keys.json
 .secrets/
+
+# Vault unseal keys and root tokens
+**/unseal-keys.json
+**/root-token.txt
+**/vault-keys.json
+
+# Private keys
+**/private_key*
+**/privatekey*
+**/*.private
+
+# JAAS configuration with credentials
+docker/messaging/config/kafka_server_jaas.conf
+docker/kafka/config/kafka_server_jaas.conf
+!**/*_jaas.conf.example
+
+# Wazuh SSL certificates (generated)
+docker/wazuh/config/wazuh_indexer_ssl_certs/
+
+# Backup files that may contain sensitive data
+backups/*.sql
+backups/*.sql.gz
+backups/*.tar.gz
+backups/*.rdb
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Test artifacts
+*.test.env

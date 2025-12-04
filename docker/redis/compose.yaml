@@ -8,12 +8,9 @@ services:
     container_name: thaliumx-redis
     hostname: thaliumx-redis
     restart: unless-stopped
-    # Password is stored in Vault at: kv/thaliumx/cache/redis
-    # For initial setup, we use the standardized password
-    # In production, services should fetch from Vault
     command: >
       redis-server
-      --requirepass ThaliumX2025
+      --requirepass ${REDIS_PASSWORD:-ThaliumX2025}
       --appendonly yes
       --appendfsync everysec
       --maxmemory 256mb
@@ -28,7 +25,7 @@ services:
     networks:
       - thaliumx-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "ThaliumX2025", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ThaliumX2025}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

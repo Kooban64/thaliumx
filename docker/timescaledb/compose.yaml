@@ -16,7 +16,6 @@ services:
       POSTGRES_USER: ${TIMESCALE_USER:-dingir}
       POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:-ThaliumX2025}
       POSTGRES_DB: ${TIMESCALE_DB:-exchange}
-      # Performance tuning
       TIMESCALEDB_TELEMETRY: "off"
     ports:
       - "${TIMESCALE_PORT:-5435}:5432"

@@ -22,14 +22,12 @@ services:
     
     # Credentials stored in Vault at: kv/thaliumx/database/citus
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ThaliumX2025
-      POSTGRES_DB: thaliumx
+      POSTGRES_USER: ${CITUS_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CITUS_POSTGRES_PASSWORD:-ThaliumX2025}
+      POSTGRES_DB: ${POSTGRES_DB:-thaliumx}
       # Citus specific settings
       CITUS_HOST: thaliumx-citus-coordinator
       PGDATA: /var/lib/postgresql/data/pgdata
-      # Trust authentication for internal Citus communication
-      POSTGRES_HOST_AUTH_METHOD: trust
     
     ports:
       - "${CITUS_PORT:-5434}:5432"
@@ -124,12 +122,10 @@ services:
     restart: unless-stopped
     
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ThaliumX2025
-      POSTGRES_DB: thaliumx
+      POSTGRES_USER: ${CITUS_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CITUS_POSTGRES_PASSWORD:-ThaliumX2025}
+      POSTGRES_DB: ${POSTGRES_DB:-thaliumx}
       PGDATA: /var/lib/postgresql/data/pgdata
-      # Trust authentication for internal Citus communication
-      POSTGRES_HOST_AUTH_METHOD: trust
     
     volumes:
       - citus_worker1_data:/var/lib/postgresql/data
@@ -192,12 +188,10 @@ services:
     restart: unless-stopped
     
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ThaliumX2025
-      POSTGRES_DB: thaliumx
+      POSTGRES_USER: ${CITUS_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CITUS_POSTGRES_PASSWORD:-ThaliumX2025}
+      POSTGRES_DB: ${POSTGRES_DB:-thaliumx}
       PGDATA: /var/lib/postgresql/data/pgdata
-      # Trust authentication for internal Citus communication
-      POSTGRES_HOST_AUTH_METHOD: trust
     
     volumes:
       - citus_worker2_data:/var/lib/postgresql/data

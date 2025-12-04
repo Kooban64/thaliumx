@@ -128,7 +128,7 @@ services:
       - PORT=3002
       # Vault Configuration (primary secrets source)
       - VAULT_ADDR=http://thaliumx-vault:8200
-      - VAULT_TOKEN=${VAULT_TOKEN:-<VAULT_TOKEN>}
+      - VAULT_TOKEN=${VAULT_TOKEN:-}
       - VAULT_MOUNT_PATH=secret
       # Database Configuration (Citus for multi-tenant)
       - DB_HOST=thaliumx-citus-coordinator
@@ -150,7 +150,7 @@ services:
       # Kafka Configuration
       - KAFKA_BROKERS=thaliumx-kafka:9092
       # MongoDB Configuration
-      - MONGODB_URI=mongodb://thaliumx:${MONGO_PASSWORD:-ThaliumX2025}@thaliumx-mongodb:27017/thaliumx?authSource=admin
+      - MONGODB_URI=mongodb://thaliumx:${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025}@thaliumx-mongodb:27017/thaliumx?authSource=admin
       # OPA Configuration
       - OPA_URL=http://thaliumx-opa:8181
       # Trading Services

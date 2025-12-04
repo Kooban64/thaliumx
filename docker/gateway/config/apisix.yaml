@@ -26,12 +26,14 @@ deployment:
     admin_key_required: true
     admin_key:
       - name: admin
-        key: thaliumx-admin-key
+        key: "${{APISIX_ADMIN_KEY}}"
         role: admin
+    # SECURITY: Restrict admin access to internal network only
     allow_admin:
-      - 0.0.0.0/0
+      - 172.28.0.0/16
+      - 127.0.0.1/32
     admin_listen:
-      ip: 0.0.0.0
+      ip: 127.0.0.1
       port: 9180
   etcd:
     host:

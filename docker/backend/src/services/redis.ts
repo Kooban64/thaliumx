@@ -177,7 +177,7 @@ export class RedisService {
   }
 
   // Rate limiting
-  public static async checkRateLimit(key: string, limit: number, window: number): Promise<boolean> {
+  public static async checkRateLimit(key: string, limit: number, window: number, failOpen: boolean = false): Promise<boolean> {
     try {
       const current = await this.client.incr(key);
       if (current === 1) {
@@ -186,8 +186,20 @@ export class RedisService {
       return current <= limit;
     } catch (error) {
       LoggerService.error('Redis rate limit error:', error);
-      return true; // Allow on error
+      // SECURITY: Default to fail-closed (deny) for rate limiting
+      // Set failOpen=true only for non-security-critical endpoints
+      if (failOpen) {
+        LoggerService.warn('Rate limiting failed open due to Redis error');
+        return true;
+      }
+      LoggerService.warn('Rate limiting failed closed due to Redis error');
+      return false; // Fail closed - deny request when Redis is unavailable
     }
+  }
+
+  // Rate limiting with fail-open behavior for non-critical endpoints
+  public static async checkRateLimitFailOpen(key: string, limit: number, window: number): Promise<boolean> {
+    return this.checkRateLimit(key, limit, window, true);
   }
 
   // Pub/Sub operations

@@ -170,7 +170,7 @@ services:
       # Redis for caching
       REDIS_URL: redis://:${REDIS_PASSWORD:-ThaliumX2025}@thaliumx-redis:6379/0
       # MongoDB for data storage
-      MONGODB_URL: mongodb://${MONGO_USER:-thaliumx}:${MONGO_PASSWORD:-ThaliumX2025}@thaliumx-mongodb:27017/${MONGO_DB:-thaliumx}?authSource=admin
+      MONGODB_URL: mongodb://${MONGO_USER:-thaliumx}:${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025}@thaliumx-mongodb:27017/${MONGO_DB:-thaliumx}?authSource=admin
       # Vault integration (optional)
       VAULT_ADDR: http://thaliumx-vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:-}

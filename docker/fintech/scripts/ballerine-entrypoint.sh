@@ -15,11 +15,17 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Debug: show the raw output
+echo "DEBUG: Raw secrets output:"
+echo "$SECRETS_OUTPUT"
+
 # Evaluate the export statements
 eval "$SECRETS_OUTPUT"
 
 echo "Secrets loaded successfully from Vault"
 echo "BCRYPT_SALT is set: $([ -n "$BCRYPT_SALT" ] && echo 'yes' || echo 'no')"
+echo "BCRYPT_SALT value: $BCRYPT_SALT"
+echo "BCRYPT_SALT length: ${#BCRYPT_SALT}"
 echo "SESSION_SECRET is set: $([ -n "$SESSION_SECRET" ] && echo 'yes' || echo 'no')"
 echo "API_KEY is set: $([ -n "$API_KEY" ] && echo 'yes' || echo 'no')"
 echo "DB_URL is set: $([ -n "$DB_URL" ] && echo 'yes' || echo 'no')"

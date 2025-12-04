@@ -10,9 +10,9 @@ services:
     hostname: thaliumx-ballerine-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ballerine
-      POSTGRES_PASSWORD: ThaliumX2025
-      POSTGRES_DB: ballerine
+      POSTGRES_USER: ${BALLERINE_DB_USER:-ballerine}
+      POSTGRES_PASSWORD: ${BALLERINE_DB_PASSWORD:-ThaliumX2025}
+      POSTGRES_DB: ${BALLERINE_DB_NAME:-ballerine}
     ports:
       - "5433:5432"
     volumes:
@@ -116,10 +116,10 @@ services:
       # Blnk configuration via environment variables
       TZ: UTC
       BLNK_SERVER_PORT: "5001"
-      BLNK_DATA_SOURCE_DNS: postgres://thaliumx:ThaliumX2025@thaliumx-postgres:5432/thaliumx?sslmode=disable
+      BLNK_DATA_SOURCE_DNS: postgres://${POSTGRES_USER:-thaliumx}:${POSTGRES_PASSWORD:-ThaliumX2025}@thaliumx-postgres:5432/${POSTGRES_DB:-thaliumx}?sslmode=disable
       BLNK_REDIS_DNS: thaliumx-redis:6379
       BLNK_TYPESENSE_DNS: http://thaliumx-typesense:8108
-      BLNK_TYPESENSE_KEY: ThaliumX2025
+      BLNK_TYPESENSE_KEY: ${TYPESENSE_API_KEY:-ThaliumX2025}
       BLNK_ENABLE_TELEMETRY: "false"
     ports:
       - "${BLINKFINANCE_PORT:-5001}:5001"
