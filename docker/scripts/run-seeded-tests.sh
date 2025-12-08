@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # Configuration
 PRODUCTION_DOMAIN="thaliumx.com"
 PRODUCTION_IP="52.54.125.124"
-TEST_TARGET="${PRODUCTION_DOMAIN}"  # Change to PRODUCTION_IP for direct IP testing
+TEST_TARGET="${TEST_TARGET:-localhost}"  # Change to PRODUCTION_IP for direct IP testing
 
 # Logging function
 log() {

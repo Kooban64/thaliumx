@@ -1,381 +1,616 @@
-# ThaliumX Production Deployment Guide
+# ThaliumX Live Production Deployment Guide
+==========================================
 
-## Executive Summary
+This guide provides step-by-step instructions for deploying ThaliumX to live production for real user testing.
 
-This document provides a comprehensive guide for deploying ThaliumX to production. Following the complete security audit and remediation, the platform is now equipped with enterprise-grade infrastructure.
+## Prerequisites
 
----
+### 1. Production Server Requirements
+- **OS:** Ubuntu 22.04 LTS or later
+- **CPU:** 8+ cores (16+ recommended)
+- **RAM:** 32GB+ (64GB recommended)
+- **Storage:** 500GB+ SSD
+- **Network:** 1Gbps+ bandwidth
 
-## Pre-Deployment Checklist
+### 2. Domain & SSL
+- ✅ Domain: `thaliumx.com` (already registered)
+- SSL certificates will be auto-generated via Let's Encrypt
 
-### ✅ Infrastructure Components Created
+### 3. Cloud Provider Options
+- **AWS EC2:** t3.2xlarge or c6i.4xlarge
+- **DigitalOcean:** 16GB/8CPU droplet
+- **Linode:** Dedicated CPU instances
+- **Hetzner:** CPX51 or AX41
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| HashiCorp Vault (Production Mode) | ✅ Running | `docker/vault/` |
-| TLS Certificates | ✅ Generated | `docker/certs/` |
-| Cryptographic Secrets | ✅ Generated | `.secrets/generated/` |
-| Production Docker Compose | ✅ Created | `docker/compose.production.yaml` |
-| Kubernetes Helm Charts | ✅ Created | `k8s/helm/thaliumx/` |
-| CI/CD Pipelines | ✅ Created | `.github/workflows/` |
-| Monitoring & Alerting | ✅ Created | `docker/observability/` |
-| Database Schemas | ✅ Created | `docker/citus/init/` |
-| Frontend Auth Context | ✅ Created | `docker/frontend/src/lib/auth/` |
+## Step 1: Server Setup
 
-### ✅ Secrets Stored in Vault
-
-| Category | Secrets |
-|----------|---------|
-| **Databases** | PostgreSQL, MongoDB, Redis credentials |
-| **Exchanges** | Binance, Bybit, Kucoin, Kraken, OKX, Valr, Bitstamp, Crypto.com |
-| **Blockchain** | BscScan, EtherScan API keys |
-| **Wallets** | Mainnet admin, Testnet admin (addresses, private keys, mnemonics) |
-| **Security** | JWT signing, Encryption keys, Keycloak OAuth, SMTP config |
-
----
-
-## Deployment Steps
-
-### Step 1: Verify Prerequisites
-
+### 1.1 Provision Production Server
 ```bash
-# Check Docker and Docker Compose
-docker --version
-docker-compose --version
-
-# Check Vault status
-docker exec thaliumx-vault vault status
-
-# Verify secrets are generated
-ls -la .secrets/generated/
-
-# Verify certificates are generated
-ls -la docker/certs/
+# Example: AWS EC2 setup
+aws ec2 run-instances \
+  --image-id ami-0abcdef1234567890 \
+  --instance-type c6i.4xlarge \
+  --key-name your-key-pair \
+  --security-groups thaliumx-prod \
+  --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":500,"VolumeType":"gp3"}}]' \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ThaliumX-Production}]'
 ```
 
-### Step 2: Configure Environment
-
+### 1.2 Initial Server Configuration
 ```bash
-# Copy production environment template
+# SSH into your server
+ssh ubuntu@YOUR_SERVER_IP
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install required packages
+sudo apt install -y docker.io docker-compose-plugin git curl wget htop iotop
+
+# Configure Docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+
+# Install Docker Compose v2
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Reboot to apply changes
+sudo reboot
+```
+
+### 1.3 Clone Repository
+```bash
+# SSH back in after reboot
+ssh ubuntu@YOUR_SERVER_IP
+
+# Clone the repository
+git clone https://github.com/Kooban64/thaliumx.git
+cd thaliumx
+
+# Set correct permissions
+sudo chown -R ubuntu:ubuntu .
+```
+
+## Step 2: Environment Configuration
+
+### 2.1 Production Environment Variables
+```bash
+# Copy and configure production environment
 cp .env.production .env
 
 # Edit with your production values
 nano .env
-
-# Key variables to configure:
-# - DOMAIN_NAME (e.g., thaliumx.com)
-# - API_URL (e.g., https://api.thaliumx.com)
-# - KEYCLOAK_URL (e.g., https://auth.thaliumx.com)
 ```
 
-### Step 3: Initialize Databases
-
+**Required Production Environment Variables:**
 ```bash
-# Start database services first
-docker-compose -f docker/compose.production.yaml up -d postgres redis mongodb
+# Domain Configuration
+DOMAIN=thaliumx.com
+API_DOMAIN=api.thaliumx.com
+AUTH_DOMAIN=auth.thaliumx.com
 
-# Wait for databases to be ready
-sleep 30
+# SSL Configuration
+SSL_EMAIL=admin@thaliumx.com
+SSL_STAGING=false
 
-# Run database migrations
-docker-compose -f docker/compose.production.yaml exec backend npm run migrate
+# Database Configuration
+POSTGRES_PASSWORD=CHANGE_THIS_STRONG_PASSWORD
+REDIS_PASSWORD=CHANGE_THIS_STRONG_PASSWORD
+MONGODB_PASSWORD=CHANGE_THIS_STRONG_PASSWORD
+
+# Keycloak Configuration
+KEYCLOAK_ADMIN_PASSWORD=CHANGE_THIS_STRONG_PASSWORD
+
+# JWT & Encryption
+JWT_SECRET=CHANGE_THIS_256_BIT_SECRET
+ENCRYPTION_KEY=CHANGE_THIS_256_BIT_KEY
+
+# External Services (if needed)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+
+# Monitoring
+GRAFANA_ADMIN_PASSWORD=CHANGE_THIS_STRONG_PASSWORD
 ```
 
-### Step 4: Start All Services
-
+### 2.2 Generate Strong Secrets
 ```bash
-# Start all services
-docker-compose -f docker/compose.production.yaml up -d
+# Generate cryptographically secure secrets
+openssl rand -hex 32  # For JWT_SECRET
+openssl rand -hex 32  # For ENCRYPTION_KEY
+openssl rand -base64 32  # For passwords
+```
+
+## Step 3: DNS Configuration
+
+### 3.1 Update DNS Records
+Configure these DNS records for `thaliumx.com`:
+
+```
+# A Records
+thaliumx.com        A    YOUR_SERVER_IP
+www.thaliumx.com    A    YOUR_SERVER_IP
+api.thaliumx.com    A    YOUR_SERVER_IP
+auth.thaliumx.com   A    YOUR_SERVER_IP
+
+# Optional: CDN/CloudFlare
+# Configure CloudFlare for additional security and performance
+```
+
+### 3.2 Verify DNS Propagation
+```bash
+# Check DNS propagation
+nslookup thaliumx.com
+dig thaliumx.com
+```
+
+## Step 4: SSL Certificate Setup
+
+### 4.1 Install Certbot
+```bash
+# Install Certbot for Let's Encrypt
+sudo apt install -y certbot
+
+# Create SSL directory
+sudo mkdir -p /etc/ssl/thaliumx
+sudo chown ubuntu:ubuntu /etc/ssl/thaliumx
+```
+
+### 4.2 Generate SSL Certificates
+```bash
+# Generate certificates for all domains
+sudo certbot certonly --standalone \
+  -d thaliumx.com \
+  -d www.thaliumx.com \
+  -d api.thaliumx.com \
+  -d auth.thaliumx.com \
+  --email admin@thaliumx.com \
+  --agree-tos \
+  --non-interactive
+
+# Copy certificates to ThaliumX directory
+sudo cp /etc/letsencrypt/live/thaliumx.com/fullchain.pem ./certs/ssl/
+sudo cp /etc/letsencrypt/live/thaliumx.com/privkey.pem ./certs/ssl/
+sudo chown ubuntu:ubuntu ./certs/ssl/*
+```
+
+### 4.3 Set Up Auto-Renewal
+```bash
+# Create renewal script
+cat > /home/ubuntu/ssl-renewal.sh << 'EOF'
+#!/bin/bash
+sudo certbot renew
+sudo cp /etc/letsencrypt/live/thaliumx.com/fullchain.pem /home/ubuntu/thaliumx/certs/ssl/
+sudo cp /etc/letsencrypt/live/thaliumx.com/privkey.pem /home/ubuntu/thaliumx/certs/ssl/
+sudo chown ubuntu:ubuntu /home/ubuntu/thaliumx/certs/ssl/*
+docker-compose -f /home/ubuntu/thaliumx/docker-compose.prod.yml restart apisix
+EOF
+
+# Make executable and add to crontab
+chmod +x /home/ubuntu/ssl-renewal.sh
+(crontab -l ; echo "0 12 * * * /home/ubuntu/ssl-renewal.sh") | crontab -
+```
+
+## Step 5: Production Deployment
+
+### 5.1 Run Production Deployment Script
+```bash
+cd /home/ubuntu/thaliumx
+
+# Make deployment script executable
+chmod +x docker/scripts/deploy-production.sh
+
+# Run production deployment
+./docker/scripts/deploy-production.sh
+```
+
+### 5.2 Monitor Deployment Progress
+```bash
+# Monitor container status
+docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 # Check service health
-docker-compose -f docker/compose.production.yaml ps
+curl -s http://localhost:3002/health | jq .
+curl -s http://localhost:3000 | head -5
 
-# View logs
-docker-compose -f docker/compose.production.yaml logs -f
+# View logs if needed
+docker logs thaliumx-backend --tail 50
+docker logs thaliumx-frontend --tail 50
 ```
 
-### Step 5: Verify Deployment
+### 5.3 Configure Reverse Proxy (Optional)
+If you want to use a reverse proxy instead of APISIX:
 
 ```bash
-# Check backend health
-curl http://localhost:3002/health
+# Install Nginx
+sudo apt install -y nginx
 
-# Check frontend
-curl http://localhost:3000
+# Configure Nginx
+sudo tee /etc/nginx/sites-available/thaliumx << EOF
+server {
+    listen 80;
+    server_name thaliumx.com www.thaliumx.com;
+    return 301 https://\$server_name\$request_uri;
+}
 
-# Check API Gateway
-curl http://localhost:9080/apisix/status
+server {
+    listen 443 ssl http2;
+    server_name thaliumx.com www.thaliumx.com;
 
-# Check Prometheus
-curl http://localhost:9090/-/healthy
+    ssl_certificate /etc/letsencrypt/live/thaliumx.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/thaliumx.com/privkey.pem;
 
-# Check Grafana
-curl http://localhost:3001/api/health
+    # SSL Configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:3002/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.thaliumx.com;
+
+    ssl_certificate /etc/letsencrypt/live/thaliumx.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/thaliumx.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3002;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name auth.thaliumx.com;
+
+    ssl_certificate /etc/letsencrypt/live/thaliumx.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/thaliumx.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+
+# Enable site
+sudo ln -s /etc/nginx/sites-available/thaliumx /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
----
+## Step 6: Database Initialization
 
-## Kubernetes Deployment
-
-### Step 1: Create Namespace and Secrets
-
+### 6.1 Initialize Production Database
 ```bash
-# Create namespace
-kubectl create namespace thaliumx
+# Run database seeding
+cd /home/ubuntu/thaliumx
+./docker/scripts/seed-production-database.sh
 
-# Create secrets from generated files
-kubectl create secret generic thaliumx-secrets \
-  --from-file=jwt-secret=.secrets/generated/jwt-secret \
-  --from-file=encryption-key=.secrets/generated/encryption-key \
-  --from-file=postgres-password=.secrets/generated/postgres-password \
-  --from-file=redis-password=.secrets/generated/redis-password \
-  -n thaliumx
-
-# Create TLS secrets
-kubectl create secret tls thaliumx-tls \
-  --cert=docker/certs/bundles/server-bundle.pem \
-  --key=docker/certs/server/server.key \
-  -n thaliumx
+# Verify database is seeded
+docker exec thaliumx-postgres psql -U thaliumx -d thaliumx -c "SELECT COUNT(*) FROM users;"
 ```
 
-### Step 2: Deploy with Helm
-
+### 6.2 Backup Configuration
 ```bash
-# Add required Helm repos
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
+# Create backup script
+cat > /home/ubuntu/backup.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/home/ubuntu/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-# Install ThaliumX
-helm install thaliumx k8s/helm/thaliumx \
-  --namespace thaliumx \
-  --values k8s/helm/thaliumx/values.yaml \
-  --set global.environment=production
-```
+# Create backup directory
+mkdir -p $BACKUP_DIR
 
-### Step 3: Verify Kubernetes Deployment
-
-```bash
-# Check pods
-kubectl get pods -n thaliumx
-
-# Check services
-kubectl get svc -n thaliumx
-
-# Check ingress
-kubectl get ingress -n thaliumx
-
-# View logs
-kubectl logs -f deployment/thaliumx-backend -n thaliumx
-```
-
----
-
-## Security Verification
-
-### Vault Status
-
-```bash
-# Check Vault is unsealed
-docker exec thaliumx-vault vault status
-
-# Expected output:
-# Seal Type       shamir
-# Initialized     true
-# Sealed          false
-# Total Shares    5
-# Threshold       3
-```
-
-### TLS Verification
-
-```bash
-# Verify certificate chain
-openssl verify -CAfile docker/certs/ca/ca.crt docker/certs/server/server.crt
-
-# Check certificate expiry
-openssl x509 -in docker/certs/server/server.crt -noout -dates
-```
-
-### Security Headers
-
-```bash
-# Check security headers
-curl -I https://api.thaliumx.com/health
-
-# Expected headers:
-# Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-# X-Content-Type-Options: nosniff
-# X-Frame-Options: DENY
-# X-XSS-Protection: 1; mode=block
-```
-
----
-
-## Monitoring Setup
-
-### Grafana Dashboards
-
-1. Access Grafana at `http://localhost:3001`
-2. Login with admin credentials
-3. Import dashboards from `docker/observability/config/grafana/dashboards/`
-
-### Alert Configuration
-
-1. Configure Slack webhook in `docker/observability/config/alertmanager.yml`
-2. Configure PagerDuty service key for critical alerts
-3. Test alert routing:
-
-```bash
-# Send test alert
-curl -X POST http://localhost:9093/api/v1/alerts \
-  -H "Content-Type: application/json" \
-  -d '[{"labels":{"alertname":"TestAlert","severity":"warning"},"annotations":{"summary":"Test alert"}}]'
-```
-
----
-
-## Backup Procedures
-
-### Vault Backup
-
-```bash
-# Backup Vault data
-docker exec thaliumx-vault vault operator raft snapshot save /vault/data/backup.snap
-
-# Copy backup to host
-docker cp thaliumx-vault:/vault/data/backup.snap ./backups/vault-$(date +%Y%m%d).snap
-```
-
-### Database Backup
-
-```bash
-# PostgreSQL backup
-docker exec thaliumx-postgres pg_dump -U thaliumx thaliumx > ./backups/postgres-$(date +%Y%m%d).sql
+# Database backup
+docker exec thaliumx-postgres pg_dump -U thaliumx thaliumx > $BACKUP_DIR/postgres_$TIMESTAMP.sql
 
 # MongoDB backup
-docker exec thaliumx-mongodb mongodump --out /backup
-docker cp thaliumx-mongodb:/backup ./backups/mongodb-$(date +%Y%m%d)
+docker exec thaliumx-mongodb mongodump --out $BACKUP_DIR/mongodb_$TIMESTAMP
 
-# Redis backup
-docker exec thaliumx-redis redis-cli BGSAVE
-docker cp thaliumx-redis:/data/dump.rdb ./backups/redis-$(date +%Y%m%d).rdb
+# Compress backups
+tar -czf $BACKUP_DIR/full_backup_$TIMESTAMP.tar.gz $BACKUP_DIR/postgres_$TIMESTAMP.sql $BACKUP_DIR/mongodb_$TIMESTAMP
+
+# Clean old backups (keep last 7 days)
+find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+find $BACKUP_DIR -name "postgres_*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "mongodb_*" -mtime +7 -delete
+
+echo "Backup completed: $BACKUP_DIR/full_backup_$TIMESTAMP.tar.gz"
+EOF
+
+# Make executable and schedule
+chmod +x /home/ubuntu/backup.sh
+(crontab -l ; echo "0 2 * * * /home/ubuntu/backup.sh") | crontab -
 ```
+
+## Step 7: Security Hardening
+
+### 7.1 Firewall Configuration
+```bash
+# Install UFW
+sudo apt install -y ufw
+
+# Configure firewall
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw allow 22
+sudo ufw --force enable
+
+# Verify firewall status
+sudo ufw status
+```
+
+### 7.2 SSH Hardening
+```bash
+# Disable password authentication
+sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+
+# Disable root login
+sudo sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+
+# Restart SSH
+sudo systemctl restart ssh
+
+# Add your public key to authorized_keys
+echo "YOUR_PUBLIC_SSH_KEY" >> ~/.ssh/authorized_keys
+```
+
+### 7.3 Fail2Ban Setup
+```bash
+# Install Fail2Ban
+sudo apt install -y fail2ban
+
+# Configure for SSH
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+
+# Check status
+sudo fail2ban-client status
+```
+
+## Step 8: Monitoring & Alerting
+
+### 8.1 Set Up Monitoring
+```bash
+# Access Grafana
+echo "Grafana: http://YOUR_SERVER_IP:3001"
+echo "Username: admin"
+echo "Password: YOUR_GRAFANA_PASSWORD"
+
+# Access Prometheus
+echo "Prometheus: http://YOUR_SERVER_IP:9090"
+
+# Access Loki (logs)
+echo "Loki: http://YOUR_SERVER_IP:3100"
+```
+
+### 8.2 Configure Alerts
+```bash
+# Edit Prometheus alert rules
+nano docker/observability/config/prometheus/alerts.yml
+
+# Example alerts:
+# - Service down
+# - High CPU usage
+# - Low disk space
+# - Database connection issues
+```
+
+### 8.3 Log Aggregation
+```bash
+# Verify Loki is collecting logs
+curl -s "http://localhost:3100/loki/api/v1/query?query={job=\"thaliumx\"}" | jq .
+```
+
+## Step 9: Performance Optimization
+
+### 9.1 Docker Resource Limits
+```bash
+# Configure Docker daemon
+sudo tee /etc/docker/daemon.json << EOF
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "50m",
+    "max-file": "5"
+  },
+  "default-ulimits": {
+    "nofile": {
+      "Name": "nofile",
+      "Hard": 65536,
+      "Soft": 65536
+    }
+  }
+}
+EOF
+
+sudo systemctl restart docker
+```
+
+### 9.2 System Tuning
+```bash
+# Increase file descriptors
+echo "ubuntu soft nofile 65536" | sudo tee -a /etc/security/limits.conf
+echo "ubuntu hard nofile 65536" | sudo tee -a /etc/security/limits.conf
+
+# Configure sysctl for better performance
+sudo tee -a /etc/sysctl.conf << EOF
+# Network tuning
+net.core.somaxconn = 65536
+net.ipv4.tcp_max_syn_backlog = 65536
+net.ipv4.ip_local_port_range = 1024 65535
+
+# Memory management
+vm.swappiness = 10
+vm.dirty_ratio = 60
+vm.dirty_background_ratio = 2
+EOF
+
+sudo sysctl -p
+```
+
+## Step 10: Final Testing & Go-Live
+
+### 10.1 Run Production Tests
+```bash
+cd /home/ubuntu/thaliumx
+
+# Run comprehensive tests
+TEST_TARGET=https://thaliumx.com ./docker/scripts/run-seeded-tests.sh
+
+# Test individual endpoints
+curl -I https://thaliumx.com
+curl -s https://api.thaliumx.com/health | jq .
+curl -s https://auth.thaliumx.com/auth/realms/thaliumx
+```
+
+### 10.2 Load Testing
+```bash
+# Install k6 for load testing
+sudo apt install -y k6
+
+# Run load tests
+k6 run docker/tests/load/auth-load-test.js
+k6 run docker/tests/load/trading-load-test.js
+```
+
+### 10.3 Go-Live Checklist
+- [ ] DNS propagation complete
+- [ ] SSL certificates valid
+- [ ] All services healthy
+- [ ] Database seeded with test data
+- [ ] Monitoring alerts configured
+- [ ] Backup system operational
+- [ ] Security hardening applied
+- [ ] Load testing passed
+- [ ] Admin access verified
+
+### 10.4 Emergency Rollback Plan
+```bash
+# Quick rollback script
+cat > /home/ubuntu/rollback.sh << 'EOF'
+#!/bin/bash
+echo "Rolling back to previous version..."
+
+# Stop all services
+docker-compose -f docker-compose.prod.yml down
+
+# Restore from backup
+# (Implement backup restoration logic)
+
+# Restart with previous configuration
+git checkout PREVIOUS_TAG
+docker-compose -f docker-compose.prod.yml up -d
+
+echo "Rollback complete"
+EOF
+
+chmod +x /home/ubuntu/rollback.sh
+```
+
+## Step 11: Post-Launch Monitoring
+
+### 11.1 Monitor Key Metrics
+```bash
+# Check system resources
+htop
+iotop
+docker stats
+
+# Monitor application logs
+docker logs -f thaliumx-backend
+docker logs -f thaliumx-frontend
+
+# Check error rates
+curl -s "http://localhost:9090/api/v1/query?query=rate(http_requests_total{status=~\"5..\"}[5m])" | jq .
+```
+
+### 11.2 User Acceptance Testing
+1. **Registration Flow:** Test user registration and email verification
+2. **Authentication:** Test login/logout with different user types
+3. **Trading Interface:** Test order placement and execution
+4. **Wallet Integration:** Test Web3 wallet connections
+5. **Mobile Responsiveness:** Test on various devices
+6. **Performance:** Test under real user load
+
+## Emergency Contacts & Support
+
+### Production Support
+- **Primary Contact:** admin@thaliumx.com
+- **Monitoring:** https://thaliumx.com:3001 (Grafana)
+- **Logs:** https://thaliumx.com:3100 (Loki)
+- **Security:** https://thaliumx.com:5601 (Wazuh)
+
+### Critical Incident Response
+1. Check service health: `docker ps`
+2. Review logs: `docker logs SERVICE_NAME`
+3. Check monitoring dashboards
+4. Scale resources if needed
+5. Contact development team if required
+
+## Success Metrics
+
+### Performance Targets
+- **Response Time:** <500ms for API calls
+- **Uptime:** 99.9% availability
+- **Error Rate:** <0.1% 5xx errors
+- **Concurrent Users:** Support 10,000+ users
+
+### Security Compliance
+- **Data Encryption:** All sensitive data encrypted
+- **Access Control:** Role-based permissions enforced
+- **Audit Logging:** All actions logged and monitored
+- **Compliance:** GDPR and financial regulations met
 
 ---
 
-## Disaster Recovery
+## 🚀 Launch Command
 
-### Vault Recovery
-
-1. **If Vault is sealed:**
-   ```bash
-   # Use 3 of 5 unseal keys
-   docker exec thaliumx-vault vault operator unseal <key1>
-   docker exec thaliumx-vault vault operator unseal <key2>
-   docker exec thaliumx-vault vault operator unseal <key3>
-   ```
-
-2. **If Vault data is lost:**
-   ```bash
-   # Restore from snapshot
-   docker exec thaliumx-vault vault operator raft snapshot restore /vault/data/backup.snap
-   ```
-
-### Database Recovery
+Once all steps are complete:
 
 ```bash
-# PostgreSQL restore
-docker exec -i thaliumx-postgres psql -U thaliumx thaliumx < ./backups/postgres-backup.sql
+# Final go-live command
+cd /home/ubuntu/thaliumx
+echo "🚀 ThaliumX is now LIVE at https://thaliumx.com"
 
-# MongoDB restore
-docker cp ./backups/mongodb-backup thaliumx-mongodb:/backup
-docker exec thaliumx-mongodb mongorestore /backup
+# Monitor initial traffic
+docker logs -f thaliumx-frontend | head -20
+docker logs -f thaliumx-backend | head -20
 ```
 
----
-
-## Production Readiness Score
-
-### Updated Assessment: **85/100** ✅
-
-| Category | Score | Status |
-|----------|-------|--------|
-| Security | 90/100 | ✅ Excellent |
-| Infrastructure | 85/100 | ✅ Good |
-| Monitoring | 85/100 | ✅ Good |
-| Documentation | 80/100 | ✅ Good |
-| Testing | 75/100 | ⚠️ Needs more coverage |
-| Disaster Recovery | 85/100 | ✅ Good |
-
-### Improvements Made
-
-1. ✅ HashiCorp Vault in production mode with Shamir secret sharing
-2. ✅ All secrets migrated to Vault
-3. ✅ TLS certificates generated for all services
-4. ✅ Comprehensive alerting rules
-5. ✅ Production Docker Compose with all services
-6. ✅ Kubernetes Helm charts
-7. ✅ CI/CD pipelines with security scanning
-8. ✅ Database schemas with audit logging
-9. ✅ Frontend authentication context
-
-### Remaining Recommendations
-
-1. **Testing**: Increase unit and integration test coverage to 80%+
-2. **Load Testing**: Run load tests before production launch
-3. **Penetration Testing**: Conduct third-party security audit
-4. **Documentation**: Complete API documentation with OpenAPI specs
-5. **Runbooks**: Create detailed runbooks for all alert scenarios
-
----
-
-## Support Contacts
-
-| Role | Contact |
-|------|---------|
-| DevOps | devops@thaliumx.com |
-| Security | security@thaliumx.com |
-| On-Call | oncall@thaliumx.com |
-
----
-
-## Appendix: File Locations
-
-### Configuration Files
-
-| File | Purpose |
-|------|---------|
-| `docker/compose.production.yaml` | Production Docker Compose |
-| `.env.production` | Production environment variables |
-| `docker/vault/config/vault-production.hcl` | Vault configuration |
-| `docker/apisix/config/apisix-production.yaml` | API Gateway configuration |
-| `docker/keycloak/realm-config/thaliumx-realm.json` | Keycloak realm configuration |
-
-### Security Files
-
-| File | Purpose |
-|------|---------|
-| `.secrets/generated/` | Generated secrets |
-| `docker/certs/` | TLS certificates |
-| `docker/vault/policies/` | Vault policies |
-
-### Monitoring Files
-
-| File | Purpose |
-|------|---------|
-| `docker/observability/config/prometheus.yml` | Prometheus configuration |
-| `docker/observability/config/alerts/` | Alerting rules |
-| `docker/observability/config/alertmanager.yml` | Alert routing |
-| `docker/observability/config/promtail.yml` | Log shipping |
-
-### CI/CD Files
-
-| File | Purpose |
-|------|---------|
-| `.github/workflows/ci.yml` | Continuous Integration |
-| `.github/workflows/cd.yml` | Continuous Deployment |
-
----
-
-*Document Version: 1.0*
-*Last Updated: December 3, 2025*
+**Congratulations! ThaliumX is now live in production! 🎉**

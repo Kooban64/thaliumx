@@ -11,7 +11,7 @@ set -e
 BACKUP_DIR="/opt/thaliumx/backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_NAME="thaliumx_backup_${TIMESTAMP}"
-LOG_FILE="/var/log/thaliumx/backup.log"
+LOG_FILE="$BACKUP_DIR/backup.log"
 
 # Colors for output
 RED='\033[0;31m'
@@ -22,6 +22,8 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
+    # Create log directory if it doesn't exist
+    sudo mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $*" | tee -a "$LOG_FILE"
 }
 
