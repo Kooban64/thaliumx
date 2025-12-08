@@ -19,8 +19,22 @@ fi
 echo "DEBUG: Raw secrets output:"
 echo "$SECRETS_OUTPUT"
 
+# Preserve the correct BCRYPT_SALT if it's already set to the scrypt format
+ORIGINAL_BCRYPT_SALT="$BCRYPT_SALT"
+echo "DEBUG: Original BCRYPT_SALT: '$ORIGINAL_BCRYPT_SALT'"
+
 # Evaluate the export statements
 eval "$SECRETS_OUTPUT"
+
+echo "DEBUG: After Vault load - BCRYPT_SALT: '$BCRYPT_SALT'"
+
+# Restore the correct BCRYPT_SALT if it was overwritten by Vault
+if [ -n "$ORIGINAL_BCRYPT_SALT" ] && [ "$ORIGINAL_BCRYPT_SALT" != "$BCRYPT_SALT" ]; then
+  if [[ "$ORIGINAL_BCRYPT_SALT" == \$7\$* ]]; then
+    export BCRYPT_SALT="$ORIGINAL_BCRYPT_SALT"
+    echo "Restored correct BCRYPT_SALT (scrypt format)"
+  fi
+fi
 
 echo "Secrets loaded successfully from Vault"
 echo "BCRYPT_SALT is set: $([ -n "$BCRYPT_SALT" ] && echo 'yes' || echo 'no')"

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, Shield } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { loginSchema, validateForm } from '@/lib/utils';
 
 interface LoginResponse {
   accessToken?: string;
@@ -121,6 +122,18 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     setIsLoading(true);
     setError('');
 
+    // Validate form data
+    const validation = validateForm(loginSchema, {
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (!validation.success) {
+      setError(Object.values(validation.errors)[0] || 'Please check your input');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await apiClient.post<LoginResponse>('/api/auth/login', {
         email: formData.email,
@@ -135,9 +148,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         throw new Error(response.message || 'Login failed');
       }
 
-      if (response.data?.accessToken) {
-        localStorage.setItem('authToken', response.data.accessToken);
-        onSuccess?.(response.data.accessToken);
+      if (response.success) {
+        // Tokens are now stored in httpOnly cookies by the backend
+        onSuccess?.('authenticated');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -161,9 +174,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         throw new Error(response.message || 'MFA verification failed');
       }
 
-      if (response.data?.accessToken) {
-        localStorage.setItem('authToken', response.data.accessToken);
-        onSuccess?.(response.data.accessToken);
+      if (response.success) {
+        // Tokens are now stored in httpOnly cookies by the backend
+        onSuccess?.('authenticated');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'MFA verification failed');

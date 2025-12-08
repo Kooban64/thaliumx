@@ -50,7 +50,7 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-a0f1ad52a21cc1342c7f603d134e0f0e}
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-thaliumx-vault-token-2025}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
       VAULT_ADDR: http://127.0.0.1:8200
       VAULT_API_ADDR: http://thaliumx-vault:8200
@@ -60,16 +60,16 @@ services:
     volumes:
       - vault_data:/vault/data
       - vault_logs:/vault/logs
-    # Dev mode for development - auto-unsealed
+    # Dev mode for now - will enable TLS after basic functionality works
     command: server -dev
     networks:
       - thaliumx-net
     healthcheck:
-      test: ["CMD-SHELL", "vault status 2>/dev/null || exit 0"]
+      test: ["CMD-SHELL", "vault status --tls-skip-verify 2>/dev/null || exit 0"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
 
   # Vault initialization sidecar - runs once to set up secrets
   vault-init:
@@ -79,7 +79,7 @@ services:
     restart: "no"
     environment:
       VAULT_ADDR: http://thaliumx-vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN:-a0f1ad52a21cc1342c7f603d134e0f0e}
+      VAULT_TOKEN: ${VAULT_TOKEN:-thaliumx-vault-token-2025}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -101,12 +101,14 @@ services:
         echo "Creating Ballerine secrets..."
         vault kv put kv/fintech/ballerine \
           db_password="dW2QSkQnxJhaY2pP8mAt7YR9qtmbaHZ7" \
-          bcrypt_salt='$$2b$$12$$LQv3c1yqBWVHxkd0LHAkCO' \
           session_secret="ballerine-session-secret-key-production" \
           api_key="ballerine-api-key-for-production" \
           hashing_key_secret="ballerine-hashing-key-secret" \
           webhook_secret="ballerine-webhook-secret" \
-          jwt_secret_key="ballerine-jwt-secret-key"
+          jwt_secret_key="ballerine-jwt-secret-key" \
+          magic_link_jwt_secret="ballerine-magic-link-jwt-secret" \
+          magic_link_auth_jwt_secret="ballerine-magic-link-auth-jwt-secret" \
+          notion_api_key="ballerine-notion-api-key"
         
         # Create secrets for Backend
         echo "Creating Backend secrets..."

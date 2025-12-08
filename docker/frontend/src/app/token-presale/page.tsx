@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Coins, 
-  TrendingUp, 
-  Loader2, 
+import {
+  Coins,
+  TrendingUp,
+  Loader2,
   CheckCircle,
   ArrowLeft,
   Wallet,
@@ -19,6 +19,7 @@ import {
   Target,
   AlertTriangle
 } from 'lucide-react';
+import { tokenPurchaseSchema, validateForm } from '@/lib/utils';
 
 export default function TokenPresalePage() {
   const [amount, setAmount] = useState('');
@@ -29,19 +30,35 @@ export default function TokenPresalePage() {
   const [presaleData, setPresaleData] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [brokerCode, setBrokerCode] = useState<string>('');
+  const [thalPrice, setThalPrice] = useState<number>(0.10); // Default fallback price
 
   useEffect(() => {
     // Load presale data
     loadPresaleData();
+
+    // Load THAL price
+    loadThalPrice();
   }, []);
+
+  const loadThalPrice = async () => {
+    try {
+      const response = await fetch('/api/market/prices/THAL');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setThalPrice(data.data.price);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load THAL price:', error);
+      // Keep default price of $0.10
+    }
+  };
 
   const loadPresaleData = async () => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/presale/status', {
-        headers: token ? {
-          'Authorization': `Bearer ${token}`,
-        } : {},
+        credentials: 'include', // Include cookies
       });
 
       if (response.ok) {
@@ -59,20 +76,29 @@ export default function TokenPresalePage() {
     setError('');
     setSuccess('');
 
-    try {
-      const token = localStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('Please sign in to purchase tokens');
-      }
+    // Validate form data
+    const purchaseData = {
+      amount: parseFloat(amount),
+      paymentMethod,
+      walletAddress: paymentMethod === 'USDT' ? walletAddress : undefined,
+      brokerCode: brokerCode || undefined,
+    };
 
+    const validation = validateForm(tokenPurchaseSchema, purchaseData);
+    if (!validation.success) {
+      setError(Object.values(validation.errors)[0] || 'Please check your input');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
       const response = await fetch('/api/presale/investments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
           ...(brokerCode ? { 'X-Broker-Code': brokerCode } : {})
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({
           presaleId: 'thal-presale-v1',
           amount: parseFloat(amount),
@@ -266,14 +292,14 @@ export default function TokenPresalePage() {
                 <div className="p-3 bg-muted rounded-lg">
                   <div className="flex justify-between text-sm mb-2">
                     <span>Presale Price:</span>
-                    <span className="font-medium">1 THAL = $0.10 USDT</span>
+                    <span className="font-medium">1 THAL = ${thalPrice.toFixed(4)} USDT</span>
                   </div>
                   {amount && (
                     <>
                       <div className="flex justify-between text-sm mb-2">
                         <span>You'll receive:</span>
                         <span className="font-medium">
-                          {(parseFloat(amount) / 0.10).toLocaleString()} THAL
+                          {(parseFloat(amount) / thalPrice).toLocaleString()} THAL
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">

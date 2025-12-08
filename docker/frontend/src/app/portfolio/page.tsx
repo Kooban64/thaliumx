@@ -10,9 +10,8 @@ export default function PortfolioPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const token = localStorage.getItem('authToken') || '';
         const res = await fetch('/api/presale/investments', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
+          credentials: 'include' // Include cookies
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error?.message || 'Failed to load');

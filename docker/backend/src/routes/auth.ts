@@ -191,9 +191,9 @@ export const validateConfirmResetPassword = (req: Request, res: Response, next: 
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password, mfaCode, rememberMe } = req.body as AuthRequest;
-    
-    const result = await AuthService.login(email, password, mfaCode, rememberMe);
-    
+
+    const result = await AuthService.login(email, password, mfaCode, rememberMe, res);
+
     res.json({
       success: true,
       data: result,
@@ -246,11 +246,11 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = (req as any).user?.userId;
-    
+
     if (userId) {
-      await AuthService.logout(userId);
+      await AuthService.logout(userId, res);
     }
-    
+
     res.json({
       success: true,
       message: 'Logged out successfully',

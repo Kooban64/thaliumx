@@ -120,8 +120,8 @@ export interface AuthRequest {
 
 export interface AuthResponse {
   user: User;
-  accessToken: string;
-  refreshToken: string;
+  accessToken?: string; // Optional when using httpOnly cookies
+  refreshToken?: string; // Optional when using httpOnly cookies
   expiresIn: number;
   tokenType: 'Bearer';
 }

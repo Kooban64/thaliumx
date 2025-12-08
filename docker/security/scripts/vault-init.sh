@@ -31,7 +31,11 @@ echo "Creating Ballerine secrets..."
 vault kv put kv/fintech/ballerine \
     DATABASE_URL="postgresql://ballerine:ballerine_secure_password@thaliumx-ballerine-postgres:5432/ballerine" \
     SECRET_KEY="ballerine-secret-key-for-production" \
-    API_KEY="ballerine-api-key-for-production"
+    API_KEY="ballerine-api-key-for-production" \
+    BCRYPT_SALT="\$7\$CUdYR101dztpSnJjNAx9Q2\$ng" \
+    MAGIC_LINK_JWT_SECRET="ballerine-magic-link-jwt-secret" \
+    MAGIC_LINK_AUTH_JWT_SECRET="ballerine-magic-link-auth-jwt-secret" \
+    NOTION_API_KEY="ballerine-notion-api-key"
 
 # Create secrets for Backend
 echo "Creating Backend secrets..."

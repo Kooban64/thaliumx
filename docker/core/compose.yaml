@@ -128,7 +128,7 @@ services:
       - PORT=3002
       # Vault Configuration (primary secrets source)
       - VAULT_ADDR=http://thaliumx-vault:8200
-      - VAULT_TOKEN=${VAULT_TOKEN:-}
+      - VAULT_TOKEN=${VAULT_TOKEN:-thaliumx-vault-token-2025}
       - VAULT_MOUNT_PATH=secret
       # Database Configuration (Citus for multi-tenant)
       - DB_HOST=thaliumx-citus-coordinator

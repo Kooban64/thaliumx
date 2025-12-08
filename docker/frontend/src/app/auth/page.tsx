@@ -10,11 +10,21 @@ export default function AuthPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      setIsAuthenticated(true);
-    }
+    // Check if user is already authenticated by making a request
+    // Since tokens are in httpOnly cookies, we need to check with the server
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include' // Include cookies
+        });
+        if (response.ok) {
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        // User is not authenticated
+      }
+    };
+    checkAuth();
   }, []);
 
   const handleAuthSuccess = (token: string) => {

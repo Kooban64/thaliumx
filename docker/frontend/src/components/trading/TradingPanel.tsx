@@ -1,18 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Loader2, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Loader2,
   Calculator,
   AlertTriangle
 } from 'lucide-react';
+import { tradingOrderSchema, validateForm } from '@/lib/utils';
 
 export function TradingPanel() {
   const [orderType, setOrderType] = useState<'buy' | 'sell'>('buy');
@@ -22,11 +23,39 @@ export function TradingPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [priceLoading, setPriceLoading] = useState(true);
 
-  const currentPrice = 45000; // Mock current price
-  const estimatedTotal = orderSide === 'market' 
+  // Fetch current BTC price on component mount
+  useEffect(() => {
+    const fetchCurrentPrice = async () => {
+      try {
+        const response = await fetch('/api/market/prices/BTC');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setCurrentPrice(data.data.price);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch current price:', err);
+      } finally {
+        setPriceLoading(false);
+      }
+    };
+
+    fetchCurrentPrice();
+
+    // Refresh price every 30 seconds
+    const interval = setInterval(fetchCurrentPrice, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const estimatedTotal = currentPrice && orderSide === 'market'
     ? (parseFloat(amount) * currentPrice).toFixed(2)
-    : (parseFloat(amount) * parseFloat(price || '0')).toFixed(2);
+    : currentPrice && orderSide === 'limit'
+    ? (parseFloat(amount) * parseFloat(price || '0')).toFixed(2)
+    : '0.00';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,21 +63,30 @@ export function TradingPanel() {
     setError('');
     setSuccess('');
 
+    // Validate form data
+    const orderData = {
+      symbol: 'BTCUSDT',
+      side: orderType as 'buy' | 'sell',
+      type: orderSide as 'market' | 'limit',
+      quantity: parseFloat(amount),
+      price: orderSide === 'limit' ? parseFloat(price) : undefined,
+    };
+
+    const validation = validateForm(tradingOrderSchema, orderData);
+    if (!validation.success) {
+      setError(Object.values(validation.errors)[0] || 'Please check your input');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/trading/order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          symbol: 'BTCUSDT',
-          side: orderType,
-          type: orderSide,
-          quantity: parseFloat(amount),
-          price: orderSide === 'limit' ? parseFloat(price) : undefined,
-        }),
+        credentials: 'include', // Include cookies
+        body: JSON.stringify(orderData),
       });
 
       const data = await response.json();
@@ -167,7 +205,9 @@ export function TradingPanel() {
           <div className="p-3 bg-muted rounded-lg">
             <div className="flex justify-between text-sm">
               <span>Current Price:</span>
-              <span className="font-medium">${currentPrice.toLocaleString()}</span>
+              <span className="font-medium">
+                {priceLoading ? 'Loading...' : currentPrice ? `$${currentPrice.toLocaleString()}` : 'N/A'}
+              </span>
             </div>
             {orderSide === 'market' && amount && (
               <div className="flex justify-between text-sm mt-1">

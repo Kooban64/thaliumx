@@ -27,26 +27,69 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('trading');
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number>(0);
 
   useEffect(() => {
     // Check authentication and load user data
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      window.location.href = '/auth';
-      return;
-    }
-
-    // Load user data
-    loadUserData();
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include' // Include cookies
+        });
+        if (!response.ok) {
+          window.location.href = '/auth';
+          return;
+        }
+        // Load user data
+        loadUserData();
+      } catch (error) {
+        window.location.href = '/auth';
+      }
+    };
+    checkAuth();
+    loadChartData();
   }, []);
+
+  const loadChartData = async () => {
+    try {
+      // Fetch historical data for the chart
+      const historicalResponse = await fetch('/api/market/historical/BTC?days=7');
+      if (historicalResponse.ok) {
+        const historicalData = await historicalResponse.json();
+        if (historicalData.success && historicalData.data.prices) {
+          const formattedData = historicalData.data.prices.map((price: any) => ({
+            time: Math.floor(price.timestamp / 1000) as any,
+            value: price.price,
+          }));
+          setChartData(formattedData);
+        }
+      }
+
+      // Fetch current price for display
+      const priceResponse = await fetch('/api/market/prices/BTC');
+      if (priceResponse.ok) {
+        const priceData = await priceResponse.json();
+        if (priceData.success && priceData.data) {
+          setCurrentPrice(priceData.data.price);
+          setPriceChange(priceData.data.changePercent24h);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load chart data:', error);
+      // Fallback to mock data if API fails
+      setChartData(Array.from({ length: 100 }, (_, i) => ({
+        time: (Date.now() / 1000 - (100 - i) * 60) as any,
+        value: 45000 + Math.sin(i / 10) * 1000 + (i * 10),
+      })));
+    }
+  };
 
   const loadUserData = async () => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/user/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include' // Include cookies
       });
 
       if (response.ok) {
@@ -60,8 +103,15 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include' // Include cookies
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     window.location.href = '/auth';
   };
 
@@ -199,8 +249,14 @@ export default function Dashboard() {
                       <CardTitle className="flex items-center justify-between">
                         <span>BTC/USDT</span>
                         <div className="flex items-center space-x-2">
-                          <span className="text-green-600 text-sm">+2.34%</span>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <span className={`text-sm ${priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}%
+                          </span>
+                          {priceChange >= 0 ? (
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4 text-red-600" />
+                          )}
                         </div>
                       </CardTitle>
                       <CardDescription>
@@ -208,8 +264,8 @@ export default function Dashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <LightweightChart 
-                        data={Array.from({ length: 100 }, (_, i) => ({
+                      <LightweightChart
+                        data={chartData.length > 0 ? chartData : Array.from({ length: 100 }, (_, i) => ({
                           time: (Date.now() / 1000 - (100 - i) * 60) as any,
                           value: 45000 + Math.sin(i / 10) * 1000 + (i * 10),
                         }))}

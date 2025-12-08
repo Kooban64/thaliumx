@@ -2,6 +2,25 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 const API_TIMEOUT = 10000; // 10 seconds
 
+// CSRF token management
+let csrfToken: string | null = null;
+
+export async function getCSRFToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/csrf-token`, {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    csrfToken = data.csrfToken;
+    return csrfToken!;
+  } catch (error) {
+    console.error('Failed to get CSRF token:', error);
+    throw error;
+  }
+}
+
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -32,14 +51,25 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    
-    const defaultHeaders = {
+
+    const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
 
+    // Add CSRF token for non-GET requests
+    if (options.method && options.method !== 'GET') {
+      try {
+        const csrfToken = await getCSRFToken();
+        defaultHeaders['X-CSRF-Token'] = csrfToken;
+      } catch (error) {
+        console.warn('Failed to get CSRF token:', error);
+      }
+    }
+
     const config: RequestInit = {
       ...options,
+      credentials: 'include', // Always include cookies
       headers: {
         ...defaultHeaders,
         ...options.headers,

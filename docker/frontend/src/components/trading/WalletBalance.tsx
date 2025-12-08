@@ -34,11 +34,8 @@ export function WalletBalance() {
 
   const loadBalances = async () => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/wallet/balances', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include', // Include cookies
       });
 
       if (response.ok) {

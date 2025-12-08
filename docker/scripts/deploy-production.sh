@@ -1,416 +1,416 @@
 #!/bin/bash
+# ===========================================
 # ThaliumX Production Deployment Script
-# ======================================
-# This script orchestrates the complete production deployment process
+# ===========================================
+# This script automates the complete production deployment
+# including TLS setup, Vault initialization, and service startup
+#
+# Usage:
+#   ./deploy-production.sh [full|tls|vault|keycloak|backup|status]
+# ===========================================
 
 set -e
 
-# Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-DOCKER_DIR="${PROJECT_ROOT}/docker"
-K8S_DIR="${PROJECT_ROOT}/k8s"
-
-# Environment
-ENVIRONMENT="${ENVIRONMENT:-production}"
-DOMAIN="${DOMAIN:-thaliumx.com}"
-AWS_REGION="${AWS_REGION:-us-east-1}"
-CLUSTER_NAME="${CLUSTER_NAME:-thaliumx-${ENVIRONMENT}}"
+DOCKER_DIR="${SCRIPT_DIR}/.."
+SECURITY_DIR="${DOCKER_DIR}/security"
+ENV_FILE="${DOCKER_DIR}/.env"
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+# Load environment
+if [ -f "${ENV_FILE}" ]; then
+    set -a
+    source "${ENV_FILE}"
+    set +a
+fi
+
+show_banner() {
+    echo -e "${CYAN}"
+    echo "╔═══════════════════════════════════════════════════════════╗"
+    echo "║           ThaliumX Production Deployment                  ║"
+    echo "╚═══════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+show_usage() {
+    echo "Usage: $0 [command]"
+    echo ""
+    echo "Commands:"
+    echo "  full      - Complete production deployment (recommended)"
+    echo "  tls       - Generate TLS certificates only"
+    echo "  vault     - Initialize Vault only"
+    echo "  keycloak  - Build optimized Keycloak image only"
+    echo "  backup    - Set up automated backups only"
+    echo "  status    - Show deployment status"
+    echo "  help      - Show this help message"
+    echo ""
+    echo "Full deployment order:"
+    echo "  1. Generate TLS certificates"
+    echo "  2. Build optimized Keycloak image"
+    echo "  3. Start infrastructure services"
+    echo "  4. Initialize and unseal Vault"
+    echo "  5. Configure Vault secrets"
+    echo "  6. Start application services"
+    echo "  7. Set up automated backups"
 }
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-log_section() {
-    echo -e "\n${BLUE}========================================${NC}"
-    echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}========================================${NC}\n"
-}
-
-# Check prerequisites
 check_prerequisites() {
-    log_section "Checking Prerequisites"
+    echo -e "${YELLOW}Checking prerequisites...${NC}"
     
-    local missing=()
+    local missing=0
     
-    # Check required tools
-    command -v docker &> /dev/null || missing+=("docker")
-    command -v kubectl &> /dev/null || missing+=("kubectl")
-    command -v helm &> /dev/null || missing+=("helm")
-    command -v aws &> /dev/null || missing+=("aws-cli")
-    command -v vault &> /dev/null || missing+=("vault")
-    command -v openssl &> /dev/null || missing+=("openssl")
+    # Check Docker
+    if ! command -v docker &> /dev/null; then
+        echo -e "${RED}✗ Docker not found${NC}"
+        missing=1
+    else
+        echo -e "${GREEN}✓ Docker installed${NC}"
+    fi
     
-    if [ ${#missing[@]} -ne 0 ]; then
-        log_error "Missing required tools: ${missing[*]}"
-        log_info "Please install the missing tools and try again"
+    # Check Docker Compose
+    if ! docker compose version &> /dev/null; then
+        echo -e "${RED}✗ Docker Compose not found${NC}"
+        missing=1
+    else
+        echo -e "${GREEN}✓ Docker Compose installed${NC}"
+    fi
+    
+    # Check OpenSSL
+    if ! command -v openssl &> /dev/null; then
+        echo -e "${RED}✗ OpenSSL not found${NC}"
+        missing=1
+    else
+        echo -e "${GREEN}✓ OpenSSL installed${NC}"
+    fi
+    
+    # Check jq
+    if ! command -v jq &> /dev/null; then
+        echo -e "${YELLOW}⚠ jq not found (optional but recommended)${NC}"
+    else
+        echo -e "${GREEN}✓ jq installed${NC}"
+    fi
+    
+    # Check .env file
+    if [ ! -f "${ENV_FILE}" ]; then
+        echo -e "${YELLOW}⚠ .env file not found, using defaults${NC}"
+    else
+        echo -e "${GREEN}✓ .env file found${NC}"
+    fi
+    
+    if [ ${missing} -eq 1 ]; then
+        echo ""
+        echo -e "${RED}Missing prerequisites. Please install required tools.${NC}"
         exit 1
     fi
     
-    log_info "All prerequisites met"
+    echo ""
 }
 
-# Validate environment
-validate_environment() {
-    log_section "Validating Environment"
+setup_tls() {
+    echo -e "${BLUE}=== Setting up TLS Certificates ===${NC}"
+    echo ""
     
-    # Check required environment variables
-    local required_vars=(
-        "VAULT_ADDR"
-        "VAULT_TOKEN"
-        "AWS_ACCESS_KEY_ID"
-        "AWS_SECRET_ACCESS_KEY"
-    )
+    TLS_SCRIPT="${SECURITY_DIR}/scripts/setup-production-tls.sh"
     
-    local missing=()
-    for var in "${required_vars[@]}"; do
-        if [ -z "${!var}" ]; then
-            missing+=("$var")
-        fi
-    done
-    
-    if [ ${#missing[@]} -ne 0 ]; then
-        log_error "Missing required environment variables: ${missing[*]}"
+    if [ ! -f "${TLS_SCRIPT}" ]; then
+        echo -e "${RED}TLS setup script not found: ${TLS_SCRIPT}${NC}"
         exit 1
     fi
     
-    # Validate Vault connection
-    if ! vault status &> /dev/null; then
-        log_error "Cannot connect to Vault at ${VAULT_ADDR}"
+    chmod +x "${TLS_SCRIPT}"
+    "${TLS_SCRIPT}"
+    
+    echo -e "${GREEN}✓ TLS certificates generated${NC}"
+    echo ""
+}
+
+build_keycloak() {
+    echo -e "${BLUE}=== Building Optimized Keycloak Image ===${NC}"
+    echo ""
+    
+    DOCKERFILE="${SECURITY_DIR}/Dockerfile.keycloak"
+    
+    if [ ! -f "${DOCKERFILE}" ]; then
+        echo -e "${RED}Keycloak Dockerfile not found: ${DOCKERFILE}${NC}"
         exit 1
     fi
     
-    log_info "Environment validated"
-}
-
-# Generate TLS certificates
-generate_certificates() {
-    log_section "Generating TLS Certificates"
-    
-    if [ -f "${DOCKER_DIR}/certs/server/fullchain.pem" ]; then
-        log_info "Certificates already exist, skipping generation"
-        return
-    fi
-    
-    bash "${SCRIPT_DIR}/generate-certs.sh" \
-        --domain "${DOMAIN}" \
-        --environment "${ENVIRONMENT}"
-    
-    log_info "Certificates generated"
-}
-
-# Initialize Vault secrets
-initialize_vault() {
-    log_section "Initializing Vault Secrets"
-    
-    # Check if secrets are already populated
-    if vault kv get kv/thaliumx/database/postgres &> /dev/null; then
-        log_info "Vault secrets already populated"
-        return
-    fi
-    
-    # Run the populate secrets script
-    bash "${DOCKER_DIR}/vault/scripts/populate-secrets.sh"
-    
-    log_info "Vault secrets initialized"
-}
-
-# Build Docker images
-build_images() {
-    log_section "Building Docker Images"
-    
-    local version="${VERSION:-$(git describe --tags --always)}"
-    local registry="${DOCKER_REGISTRY:-ghcr.io/thaliumx}"
-    
-    # Build backend
-    log_info "Building backend image..."
+    echo "Building thaliumx/keycloak:24.0-optimized..."
     docker build \
-        -t "${registry}/thaliumx-backend:${version}" \
-        -t "${registry}/thaliumx-backend:latest" \
-        --build-arg VERSION="${version}" \
-        --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        -f "${DOCKER_DIR}/backend/Dockerfile" \
-        "${DOCKER_DIR}/backend"
+        -f "${DOCKERFILE}" \
+        -t thaliumx/keycloak:24.0-optimized \
+        "${SECURITY_DIR}"
     
-    # Build frontend
-    log_info "Building frontend image..."
-    docker build \
-        -t "${registry}/thaliumx-frontend:${version}" \
-        -t "${registry}/thaliumx-frontend:latest" \
-        --build-arg VERSION="${version}" \
-        --build-arg NEXT_PUBLIC_API_URL="https://api.${DOMAIN}" \
-        -f "${DOCKER_DIR}/frontend/Dockerfile" \
-        "${DOCKER_DIR}/frontend"
-    
-    log_info "Docker images built"
+    echo -e "${GREEN}✓ Keycloak image built${NC}"
+    echo ""
 }
 
-# Push Docker images
-push_images() {
-    log_section "Pushing Docker Images"
+create_network() {
+    echo -e "${BLUE}=== Creating Docker Network ===${NC}"
+    echo ""
     
-    local version="${VERSION:-$(git describe --tags --always)}"
-    local registry="${DOCKER_REGISTRY:-ghcr.io/thaliumx}"
-    
-    # Login to registry
-    echo "${DOCKER_PASSWORD}" | docker login "${registry}" -u "${DOCKER_USERNAME}" --password-stdin
-    
-    # Push images
-    docker push "${registry}/thaliumx-backend:${version}"
-    docker push "${registry}/thaliumx-backend:latest"
-    docker push "${registry}/thaliumx-frontend:${version}"
-    docker push "${registry}/thaliumx-frontend:latest"
-    
-    log_info "Docker images pushed"
-}
-
-# Configure Kubernetes
-configure_kubernetes() {
-    log_section "Configuring Kubernetes"
-    
-    # Update kubeconfig
-    aws eks update-kubeconfig \
-        --name "${CLUSTER_NAME}" \
-        --region "${AWS_REGION}"
-    
-    # Verify connection
-    if ! kubectl cluster-info &> /dev/null; then
-        log_error "Cannot connect to Kubernetes cluster"
-        exit 1
+    if docker network inspect thaliumx-net &> /dev/null; then
+        echo -e "${GREEN}✓ Network thaliumx-net already exists${NC}"
+    else
+        docker network create thaliumx-net
+        echo -e "${GREEN}✓ Network thaliumx-net created${NC}"
     fi
-    
-    # Create namespace if not exists
-    kubectl create namespace thaliumx --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create image pull secret
-    kubectl create secret docker-registry ghcr-secret \
-        --docker-server=ghcr.io \
-        --docker-username="${DOCKER_USERNAME}" \
-        --docker-password="${DOCKER_PASSWORD}" \
-        --namespace=thaliumx \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    log_info "Kubernetes configured"
+    echo ""
 }
 
-# Deploy with Helm
-deploy_helm() {
-    log_section "Deploying with Helm"
+start_infrastructure() {
+    echo -e "${BLUE}=== Starting Infrastructure Services ===${NC}"
+    echo ""
     
-    local version="${VERSION:-$(git describe --tags --always)}"
-    local values_file="${K8S_DIR}/helm/thaliumx/values-${ENVIRONMENT}.yaml"
+    cd "${DOCKER_DIR}"
     
-    # Use default values if environment-specific file doesn't exist
-    if [ ! -f "${values_file}" ]; then
-        values_file="${K8S_DIR}/helm/thaliumx/values.yaml"
-    fi
+    # Start databases first
+    echo "Starting databases..."
+    docker compose -f databases/compose.yaml up -d
     
-    # Update Helm dependencies
-    helm dependency update "${K8S_DIR}/helm/thaliumx"
-    
-    # Deploy
-    helm upgrade --install thaliumx "${K8S_DIR}/helm/thaliumx" \
-        --namespace thaliumx \
-        --values "${values_file}" \
-        --set global.environment="${ENVIRONMENT}" \
-        --set global.domain="${DOMAIN}" \
-        --set backend.image.tag="${version}" \
-        --set frontend.image.tag="${version}" \
-        --wait \
-        --timeout 10m
-    
-    log_info "Helm deployment complete"
-}
-
-# Run database migrations
-run_migrations() {
-    log_section "Running Database Migrations"
-    
-    # Wait for backend pod to be ready
-    kubectl wait --for=condition=ready pod \
-        -l app.kubernetes.io/component=backend \
-        -n thaliumx \
-        --timeout=300s
-    
-    # Run migrations
-    kubectl exec -it deployment/thaliumx-backend \
-        -n thaliumx \
-        -- npm run migrate || true
-    
-    log_info "Database migrations complete"
-}
-
-# Verify deployment
-verify_deployment() {
-    log_section "Verifying Deployment"
-    
-    # Check pod status
-    log_info "Checking pod status..."
-    kubectl get pods -n thaliumx
-    
-    # Check services
-    log_info "Checking services..."
-    kubectl get svc -n thaliumx
-    
-    # Check ingress
-    log_info "Checking ingress..."
-    kubectl get ingress -n thaliumx
-    
-    # Health checks
-    log_info "Running health checks..."
-    
-    local max_attempts=30
-    local attempt=1
-    
-    while [ $attempt -le $max_attempts ]; do
-        if curl -sf "https://api.${DOMAIN}/health" > /dev/null; then
-            log_info "Backend health check passed"
+    # Wait for PostgreSQL
+    echo "Waiting for PostgreSQL to be ready..."
+    for i in {1..30}; do
+        if docker exec thaliumx-postgres pg_isready -U ${POSTGRES_USER:-thaliumx} &> /dev/null; then
+            echo -e "${GREEN}✓ PostgreSQL ready${NC}"
             break
         fi
-        log_warn "Health check attempt ${attempt}/${max_attempts} failed, retrying..."
-        sleep 10
-        ((attempt++))
+        sleep 2
     done
     
-    if [ $attempt -gt $max_attempts ]; then
-        log_error "Health checks failed after ${max_attempts} attempts"
-        exit 1
+    echo ""
+}
+
+initialize_vault() {
+    echo -e "${BLUE}=== Initializing Vault ===${NC}"
+    echo ""
+    
+    # Start Vault with production config
+    cd "${DOCKER_DIR}"
+    docker compose -f security/compose.production.yaml up -d vault
+    
+    # Wait for Vault to start
+    echo "Waiting for Vault to start..."
+    sleep 10
+    
+    VAULT_INIT_SCRIPT="${SECURITY_DIR}/scripts/vault-production-init.sh"
+    
+    if [ -f "${VAULT_INIT_SCRIPT}" ]; then
+        chmod +x "${VAULT_INIT_SCRIPT}"
+        "${VAULT_INIT_SCRIPT}"
+    else
+        echo -e "${YELLOW}Vault init script not found, manual initialization required${NC}"
     fi
     
-    log_info "Deployment verified successfully"
-}
-
-# Rollback deployment
-rollback() {
-    log_section "Rolling Back Deployment"
-    
-    helm rollback thaliumx -n thaliumx
-    
-    log_info "Rollback complete"
-}
-
-# Print deployment summary
-print_summary() {
-    log_section "Deployment Summary"
-    
-    echo "Environment: ${ENVIRONMENT}"
-    echo "Domain: ${DOMAIN}"
-    echo "Cluster: ${CLUSTER_NAME}"
     echo ""
-    echo "URLs:"
-    echo "  - Frontend: https://app.${DOMAIN}"
-    echo "  - API: https://api.${DOMAIN}"
-    echo "  - Auth: https://auth.${DOMAIN}"
-    echo ""
-    echo "Monitoring:"
-    echo "  - Grafana: https://grafana.${DOMAIN}"
-    echo "  - Prometheus: https://prometheus.${DOMAIN}"
-    echo ""
-    echo "Next Steps:"
-    echo "1. Verify all services are running: kubectl get pods -n thaliumx"
-    echo "2. Check logs: kubectl logs -f deployment/thaliumx-backend -n thaliumx"
-    echo "3. Monitor metrics in Grafana"
-    echo "4. Set up alerting rules"
 }
 
-# Main execution
-main() {
-    local command="${1:-deploy}"
+start_security_services() {
+    echo -e "${BLUE}=== Starting Security Services ===${NC}"
+    echo ""
     
-    case "$command" in
-        deploy)
-            check_prerequisites
-            validate_environment
-            generate_certificates
-            initialize_vault
-            build_images
-            push_images
-            configure_kubernetes
-            deploy_helm
-            run_migrations
-            verify_deployment
-            print_summary
-            ;;
-        build)
-            check_prerequisites
-            build_images
-            ;;
-        push)
-            push_images
-            ;;
-        certificates)
-            generate_certificates
-            ;;
-        vault)
-            initialize_vault
-            ;;
-        verify)
-            verify_deployment
-            ;;
-        rollback)
-            rollback
-            ;;
-        *)
-            echo "Usage: $0 {deploy|build|push|certificates|vault|verify|rollback}"
-            exit 1
-            ;;
-    esac
+    cd "${DOCKER_DIR}"
+    docker compose -f security/compose.production.yaml up -d
+    
+    # Wait for Keycloak
+    echo "Waiting for Keycloak to be ready..."
+    for i in {1..60}; do
+        if curl -sk https://localhost:8443/health/ready 2>/dev/null | grep -q "UP"; then
+            echo -e "${GREEN}✓ Keycloak ready${NC}"
+            break
+        fi
+        sleep 5
+    done
+    
+    echo ""
 }
 
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --environment)
-            ENVIRONMENT="$2"
-            shift 2
-            ;;
-        --domain)
-            DOMAIN="$2"
-            shift 2
-            ;;
-        --version)
-            VERSION="$2"
-            shift 2
-            ;;
-        --help)
-            echo "Usage: $0 [command] [options]"
-            echo ""
-            echo "Commands:"
-            echo "  deploy      Full deployment (default)"
-            echo "  build       Build Docker images only"
-            echo "  push        Push Docker images only"
-            echo "  certificates Generate TLS certificates"
-            echo "  vault       Initialize Vault secrets"
-            echo "  verify      Verify deployment"
-            echo "  rollback    Rollback to previous version"
-            echo ""
-            echo "Options:"
-            echo "  --environment ENV   Deployment environment (default: production)"
-            echo "  --domain DOMAIN     Domain name (default: thaliumx.com)"
-            echo "  --version VERSION   Version tag for images"
-            echo "  --help              Show this help message"
-            exit 0
-            ;;
-        *)
-            COMMAND="$1"
-            shift
-            ;;
-    esac
-done
+start_all_services() {
+    echo -e "${BLUE}=== Starting All Services ===${NC}"
+    echo ""
+    
+    cd "${DOCKER_DIR}"
+    
+    # Start remaining services
+    for compose_file in apisix/compose.yaml trading/compose.yaml fintech/compose.yaml observability/compose.yaml; do
+        if [ -f "${compose_file}" ]; then
+            echo "Starting ${compose_file}..."
+            docker compose -f "${compose_file}" up -d
+        fi
+    done
+    
+    echo -e "${GREEN}✓ All services started${NC}"
+    echo ""
+}
 
-main "${COMMAND:-deploy}"
+setup_backups() {
+    echo -e "${BLUE}=== Setting Up Automated Backups ===${NC}"
+    echo ""
+    
+    BACKUP_SCRIPT="${SCRIPT_DIR}/setup-backup-cron.sh"
+    
+    if [ -f "${BACKUP_SCRIPT}" ]; then
+        chmod +x "${BACKUP_SCRIPT}"
+        "${BACKUP_SCRIPT}" install
+    else
+        echo -e "${YELLOW}Backup setup script not found${NC}"
+    fi
+    
+    echo ""
+}
+
+show_status() {
+    echo -e "${BLUE}=== ThaliumX Deployment Status ===${NC}"
+    echo ""
+    
+    # Check containers
+    echo "Running Containers:"
+    docker ps --filter "name=thaliumx" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -20
+    
+    echo ""
+    
+    # Count healthy/unhealthy
+    TOTAL=$(docker ps --filter "name=thaliumx" -q | wc -l)
+    HEALTHY=$(docker ps --filter "name=thaliumx" --filter "health=healthy" -q | wc -l)
+    
+    echo "Summary:"
+    echo "  Total Containers: ${TOTAL}"
+    echo "  Healthy: ${HEALTHY}"
+    echo "  Unhealthy: $((TOTAL - HEALTHY))"
+    
+    echo ""
+    
+    # Check TLS certificates
+    echo "TLS Certificates:"
+    VAULT_CERT="${SECURITY_DIR}/config/vault/tls/vault.crt"
+    if [ -f "${VAULT_CERT}" ]; then
+        EXPIRY=$(openssl x509 -enddate -noout -in "${VAULT_CERT}" 2>/dev/null | cut -d= -f2)
+        echo "  Vault Certificate Expires: ${EXPIRY}"
+    else
+        echo -e "  ${YELLOW}Vault certificate not found${NC}"
+    fi
+    
+    KEYCLOAK_CERT="${SECURITY_DIR}/config/keycloak/tls/tls.crt"
+    if [ -f "${KEYCLOAK_CERT}" ]; then
+        EXPIRY=$(openssl x509 -enddate -noout -in "${KEYCLOAK_CERT}" 2>/dev/null | cut -d= -f2)
+        echo "  Keycloak Certificate Expires: ${EXPIRY}"
+    else
+        echo -e "  ${YELLOW}Keycloak certificate not found${NC}"
+    fi
+    
+    echo ""
+    
+    # Check Vault status
+    echo "Vault Status:"
+    if docker ps --filter "name=thaliumx-vault" -q | grep -q .; then
+        VAULT_STATUS=$(docker exec thaliumx-vault vault status -format=json 2>/dev/null || echo '{"sealed": "unknown"}')
+        SEALED=$(echo "${VAULT_STATUS}" | jq -r '.sealed' 2>/dev/null || echo "unknown")
+        if [ "${SEALED}" == "false" ]; then
+            echo -e "  ${GREEN}Unsealed${NC}"
+        elif [ "${SEALED}" == "true" ]; then
+            echo -e "  ${RED}Sealed${NC}"
+        else
+            echo -e "  ${YELLOW}Unknown${NC}"
+        fi
+    else
+        echo -e "  ${YELLOW}Not running${NC}"
+    fi
+    
+    echo ""
+    
+    # Check backups
+    echo "Backup Status:"
+    if crontab -l 2>/dev/null | grep -q "backup-cron-wrapper.sh"; then
+        echo -e "  Automated Backups: ${GREEN}Enabled${NC}"
+        BACKUP_DIR="${BACKUP_DIR:-/opt/thaliumx/backups}"
+        if [ -d "${BACKUP_DIR}" ]; then
+            BACKUP_COUNT=$(find "${BACKUP_DIR}" -name "thaliumx_backup_*.tar.gz" 2>/dev/null | wc -l)
+            echo "  Backup Count: ${BACKUP_COUNT}"
+        fi
+    else
+        echo -e "  Automated Backups: ${YELLOW}Not configured${NC}"
+    fi
+}
+
+full_deployment() {
+    show_banner
+    check_prerequisites
+    
+    echo -e "${CYAN}Starting full production deployment...${NC}"
+    echo ""
+    
+    # Step 1: TLS
+    setup_tls
+    
+    # Step 2: Keycloak build
+    build_keycloak
+    
+    # Step 3: Network
+    create_network
+    
+    # Step 4: Infrastructure
+    start_infrastructure
+    
+    # Step 5: Vault
+    initialize_vault
+    
+    # Step 6: Security services
+    start_security_services
+    
+    # Step 7: All services
+    start_all_services
+    
+    # Step 8: Backups
+    setup_backups
+    
+    echo ""
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║         Production Deployment Complete!                   ║${NC}"
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    show_status
+}
+
+# Main
+case "${1:-}" in
+    full)
+        full_deployment
+        ;;
+    tls)
+        show_banner
+        setup_tls
+        ;;
+    vault)
+        show_banner
+        initialize_vault
+        ;;
+    keycloak)
+        show_banner
+        build_keycloak
+        ;;
+    backup)
+        show_banner
+        setup_backups
+        ;;
+    status)
+        show_banner
+        show_status
+        ;;
+    help|--help|-h)
+        show_banner
+        show_usage
+        ;;
+    *)
+        show_banner
+        show_usage
+        exit 1
+        ;;
+esac

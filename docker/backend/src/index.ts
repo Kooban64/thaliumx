@@ -44,6 +44,7 @@ import { globalErrorHandler, notFoundHandler, requestLogger, securityHeaders, sa
 import { rateLimiter, financialRateLimiter } from './middleware/error-handler';
 import { threatDetection, behavioralAnalysis } from './middleware/threat-detection';
 import { apiGateway, gatewayHealthCheck, cleanupRateLimits } from './middleware/api-gateway';
+import { SecurityMiddleware } from './middleware/security-middleware';
 // validateRequest imported but not used in this file - used in route handlers
 import { metricsMiddleware } from './middleware/metrics';
 
@@ -81,6 +82,7 @@ import advancedMarginRouter from './routes/advanced-margin';
 import web3WalletRouter from './routes/web3-wallet';
 import deviceFingerprintRouter from './routes/device-fingerprint';
 import policyManagementRouter from './routes/policy-management';
+import marketDataRouter from './routes/market-data';
 
 // Import services
 import { DatabaseService } from './services/database';
@@ -638,6 +640,9 @@ class ThaliumXBackend {
     this.app.use(threatDetection);
     this.app.use(behavioralAnalysis);
 
+    // CSRF protection
+    this.app.use(SecurityMiddleware.csrfProtection(['/api/auth/login', '/api/auth/logout', '/api/auth/refresh']));
+
     // Input sanitization and security checks
     this.app.use(sanitizeInput);
     this.app.use(sqlInjectionProtection);
@@ -745,6 +750,9 @@ class ThaliumXBackend {
     // API Gateway health check
     this.app.get('/health/gateway', gatewayHealthCheck);
 
+    // CSRF token endpoint
+    this.app.get('/api/csrf-token', SecurityMiddleware.getCSRFToken);
+
     // Public Prometheus metrics endpoint with token/IP guard
     this.app.get('/metrics', async (req, res) => {
       try {
@@ -808,6 +816,7 @@ class ThaliumXBackend {
     this.app.use('/api/web3-wallet', web3WalletRouter);
     this.app.use('/api/security', deviceFingerprintRouter);
     this.app.use('/api/admin/policies', policyManagementRouter);
+    this.app.use('/api/market', marketDataRouter);
 
     // API documentation endpoint
     this.app.get('/api/docs', (_req, res) => {

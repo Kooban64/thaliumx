@@ -1,7 +1,11 @@
 # Wazuh Indexer Internal Users
 # ============================
 # Password hashes generated with: plugins/opensearch-security/tools/hash.sh
-# Default password: SecretPassword
+# Passwords are configured in docker/.env file
+#
+# User passwords from .env:
+# - admin: WAZUH_INDEXER_PASSWORD (ThaliumX2025!wazuh@idx)
+# - kibanaserver: WAZUH_DASHBOARD_PASSWORD (ThaliumX2025!wazuh@dash)
 
 ---
 _meta:
@@ -9,22 +13,24 @@ _meta:
   config_version: 2
 
 # Admin user - full access
+# Password: ThaliumX2025!wazuh@idx (from WAZUH_INDEXER_PASSWORD)
 admin:
-  hash: "$2y$12$K/SpwjtB.wOHJ/Nc6GVRDuc1h0rM1DfvziFRNPtk27P.c4yDr9njO"
+  hash: "$2y$12$erOCeDKu6eV2G3GjuyKnRO5/GQEuImjaOs6FfSRxXqyzxB3Dfehbi"
   reserved: true
   backend_roles:
     - "admin"
   description: "Admin user"
 
 # Kibanaserver user - for dashboard
+# Password: ThaliumX2025!wazuh@dash (from WAZUH_DASHBOARD_PASSWORD)
 kibanaserver:
-  hash: "$2y$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H."
+  hash: "$2y$12$vxDSSULurHdEY2ttbATESuJjXhzzA/m3L8omvMVEfGfz6Hys.G5ie"
   reserved: true
   description: "Kibanaserver user"
 
-# Kibanaro user - read-only
+# Kibanaro user - read-only (using admin password for simplicity)
 kibanaro:
-  hash: "$2y$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC"
+  hash: "$2y$12$erOCeDKu6eV2G3GjuyKnRO5/GQEuImjaOs6FfSRxXqyzxB3Dfehbi"
   reserved: false
   backend_roles:
     - "kibanauser"
@@ -35,25 +41,25 @@ kibanaro:
     attribute3: "value3"
   description: "Kibanaro user"
 
-# Logstash user
+# Logstash user (using admin password for simplicity)
 logstash:
-  hash: "$2y$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
+  hash: "$2y$12$erOCeDKu6eV2G3GjuyKnRO5/GQEuImjaOs6FfSRxXqyzxB3Dfehbi"
   reserved: false
   backend_roles:
     - "logstash"
   description: "Logstash user"
 
-# Readall user
+# Readall user (using admin password for simplicity)
 readall:
-  hash: "$2y$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2"
+  hash: "$2y$12$erOCeDKu6eV2G3GjuyKnRO5/GQEuImjaOs6FfSRxXqyzxB3Dfehbi"
   reserved: false
   backend_roles:
     - "readall"
   description: "Readall user"
 
-# Snapshotrestore user
+# Snapshotrestore user (using admin password for simplicity)
 snapshotrestore:
-  hash: "$2y$12$DpwmetHKwgYnorbgdvORCenv4NAK8cPUg8AI6pxLCuWf/ALc0.v7W"
+  hash: "$2y$12$erOCeDKu6eV2G3GjuyKnRO5/GQEuImjaOs6FfSRxXqyzxB3Dfehbi"
   reserved: false
   backend_roles:
     - "snapshotrestore"

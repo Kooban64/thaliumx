@@ -39,6 +39,7 @@ import { createError } from '../utils';
 import { UserService } from './user';
 import { MFAService } from './mfa';
 import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils';
+import { Response } from 'express';
 
 export class AuthService {
   private static readonly REFRESH_TOKEN_PREFIX = 'refresh_token:';
@@ -47,9 +48,9 @@ export class AuthService {
   private static readonly LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
   /**
-   * Login user with email and password
-   */
-  static async login(email: string, password: string, mfaCode?: string, rememberMe?: boolean): Promise<AuthResponse> {
+    * Login user with email and password
+    */
+   static async login(email: string, password: string, mfaCode?: string, rememberMe?: boolean, res?: Response): Promise<AuthResponse> {
     try {
       // Get user by email
       const user = await UserService.getUserByEmail(email);
@@ -151,13 +152,34 @@ export class AuthService {
       // Get token expiration
       const expiresIn = parseInt(process.env.JWT_EXPIRES_IN?.replace(/[^0-9]/g, '') || '900', 10);
 
+      // Set httpOnly cookies if response object provided
+      if (res) {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const cookieOptions = {
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: 'strict' as const,
+          maxAge: expiresIn * 1000, // Convert to milliseconds
+          path: '/'
+        };
+
+        res.cookie('accessToken', accessToken, cookieOptions);
+
+        // Refresh token with longer expiration
+        const refreshCookieOptions = {
+          ...cookieOptions,
+          maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000 // 30 days or 7 days
+        };
+        res.cookie('refreshToken', refreshToken, refreshCookieOptions);
+      }
+
       return {
         user: {
           ...user,
           passwordHash: undefined // Remove password hash from response
         } as User,
-        accessToken,
-        refreshToken,
+        accessToken: res ? undefined : accessToken, // Don't return tokens if using cookies
+        refreshToken: res ? undefined : refreshToken,
         expiresIn,
         tokenType: 'Bearer'
       };
@@ -371,23 +393,29 @@ export class AuthService {
   }
 
   /**
-   * Logout user and invalidate refresh token
-   */
-  static async logout(userId: string): Promise<void> {
-    try {
-      // Invalidate all refresh tokens for this user
-      const pattern = `${this.REFRESH_TOKEN_PREFIX}${userId}:*`;
-      const keys = await RedisService.keys(pattern);
-      if (keys && keys.length > 0) {
-        await Promise.all(keys.map(key => RedisService.del(key)));
-      }
+    * Logout user and invalidate refresh token
+    */
+   static async logout(userId: string, res?: Response): Promise<void> {
+     try {
+       // Invalidate all refresh tokens for this user
+       const pattern = `${this.REFRESH_TOKEN_PREFIX}${userId}:*`;
+       const keys = await RedisService.keys(pattern);
+       if (keys && keys.length > 0) {
+         await Promise.all(keys.map(key => RedisService.del(key)));
+       }
 
-      LoggerService.logAuth('logout', userId, true);
-    } catch (error: any) {
-      LoggerService.error('Logout failed:', error);
-      // Don't throw - logout should always succeed
-    }
-  }
+       // Clear cookies if response object provided
+       if (res) {
+         res.clearCookie('accessToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' });
+         res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' });
+       }
+
+       LoggerService.logAuth('logout', userId, true);
+     } catch (error: any) {
+       LoggerService.error('Logout failed:', error);
+       // Don't throw - logout should always succeed
+     }
+   }
 
   /**
    * Request password reset

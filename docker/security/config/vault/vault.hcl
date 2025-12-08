@@ -10,16 +10,16 @@ storage "file" {
 
 # Listener configuration
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  tls_disable = true  # Enable TLS in production with proper certificates
-  
-  # Uncomment for TLS (recommended for production)
-  # tls_cert_file = "/vault/config/tls/vault.crt"
-  # tls_key_file  = "/vault/config/tls/vault.key"
+  address       = "0.0.0.0:8200"
+  tls_disable   = false
+
+  # TLS configuration for production
+  tls_cert_file = "/opt/vault/tls/vault.crt"
+  tls_key_file  = "/opt/vault/tls/vault.key"
 }
 
 # API address for client communication
-api_addr = "http://thaliumx-vault:8200"
+api_addr = "https://thaliumx-vault:8200"
 
 # Cluster address for HA communication (if using HA storage backend)
 cluster_addr = "https://thaliumx-vault:8201"

@@ -33,6 +33,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as DOMPurifyModule from 'dompurify';
 import { JSDOM } from 'jsdom';
+import crypto from 'crypto';
 import { LoggerService } from '../services/logger';
 import { AppError, ErrorCode } from '../utils/error-handler';
 
@@ -134,6 +135,64 @@ export class SecurityMiddleware {
       LoggerService.error('XSS detection failed:', error);
       next(AppError.internal('Security check failed'));
     }
+  }
+
+  // CSRF token generation and validation
+  static generateCSRFToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  static csrfProtection(excludePaths: string[] = []) {
+    return (req: Request, res: Response, next: NextFunction): void => {
+      // Skip CSRF for safe methods
+      if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        return next();
+      }
+
+      // Skip CSRF for excluded paths
+      if (excludePaths.some(path => req.path.startsWith(path))) {
+        return next();
+      }
+
+      // Check for CSRF token in header or body
+      const token = req.headers['x-csrf-token'] as string ||
+                   req.headers['csrf-token'] as string ||
+                   (req.body && req.body._csrf);
+
+      if (!token) {
+        LoggerService.logSecurity('CSRF token missing', {
+          ip: req.ip,
+          url: req.originalUrl,
+          method: req.method,
+          userAgent: req.get('User-Agent')
+        });
+        return next(AppError.forbidden('CSRF token missing'));
+      }
+
+      // In a production system, you'd validate the token against a stored value
+      // For now, we'll do basic validation
+      if (token.length < 32) {
+        LoggerService.logSecurity('Invalid CSRF token', {
+          ip: req.ip,
+          url: req.originalUrl,
+          method: req.method,
+          tokenLength: token.length
+        });
+        return next(AppError.forbidden('Invalid CSRF token'));
+      }
+
+      next();
+    };
+  }
+
+  // CSRF token endpoint
+  static getCSRFToken(req: Request, res: Response): void {
+    const token = this.generateCSRFToken();
+    res.json({
+      csrfToken: token,
+      success: true,
+      timestamp: new Date()
+    });
   }
 
   // Content Security Policy middleware

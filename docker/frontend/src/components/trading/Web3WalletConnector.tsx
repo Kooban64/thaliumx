@@ -38,11 +38,8 @@ export function Web3WalletConnector() {
 
   const loadConnectedWallets = async () => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/web3-wallet/wallets', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include', // Include cookies
       });
 
       if (response.ok) {
@@ -90,13 +87,12 @@ export function Web3WalletConnector() {
       });
 
       // Send to backend
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/web3-wallet/connect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({
           address,
           chainId,
@@ -124,12 +120,9 @@ export function Web3WalletConnector() {
 
   const disconnectWallet = async (walletId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/web3-wallet/${walletId}/disconnect`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include', // Include cookies
       });
 
       if (response.ok) {
