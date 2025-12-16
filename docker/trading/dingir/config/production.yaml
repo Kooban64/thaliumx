@@ -11,8 +11,8 @@ user_order_num_limit: 2000
 debug: false
 
 # Database connections (using thaliumx-postgres)
-db_log: postgres://thaliumx:ThaliumX2025@thaliumx-postgres:5432/thaliumx
-db_history: postgres://thaliumx:ThaliumX2025@thaliumx-postgres:5432/thaliumx
+db_log: postgres://thaliumx:<REDACTED>@thaliumx-postgres:5432/thaliumx
+db_history: postgres://thaliumx:<REDACTED>@thaliumx-postgres:5432/thaliumx
 
 # Kafka brokers (using thaliumx-kafka)
 brokers: 'thaliumx-kafka:9092'
@@ -20,4 +20,4 @@ brokers: 'thaliumx-kafka:9092'
 # Redis connection (using thaliumx-redis)
 redis_host: thaliumx-redis
 redis_port: 6379
-redis_password: ThaliumX2025
+redis_password: <REDACTED>

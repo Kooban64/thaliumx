@@ -128,29 +128,29 @@ services:
       - PORT=3002
       # Vault Configuration (primary secrets source)
       - VAULT_ADDR=http://thaliumx-vault:8200
-      - VAULT_TOKEN=${VAULT_TOKEN:-thaliumx-vault-token-2025}
+      - VAULT_TOKEN=${VAULT_TOKEN:?VAULT_TOKEN is required}
       - VAULT_MOUNT_PATH=secret
       # Database Configuration (Citus for multi-tenant)
       - DB_HOST=thaliumx-citus-coordinator
       - DB_PORT=5432
       - DB_NAME=thaliumx
       - DB_USER=thaliumx
-      - DB_PASSWORD=${DB_PASSWORD:-ThaliumX2025}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       # Redis Configuration
       - REDIS_HOST=thaliumx-redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-ThaliumX2025}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       # Keycloak Configuration
       - KEYCLOAK_URL=http://thaliumx-keycloak:8080
       - KEYCLOAK_REALM=thaliumx
       - KEYCLOAK_CLIENT_ID=thaliumx-backend
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-ThaliumX2025}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required}
       - KEYCLOAK_ADMIN_USERNAME=admin
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-ThaliumX2025}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
       # Kafka Configuration
       - KAFKA_BROKERS=thaliumx-kafka:9092
       # MongoDB Configuration
-      - MONGODB_URI=mongodb://thaliumx:${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025}@thaliumx-mongodb:27017/thaliumx?authSource=admin
+      - MONGODB_URI=mongodb://thaliumx:${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD is required}@thaliumx-mongodb:27017/thaliumx?authSource=admin
       # OPA Configuration
       - OPA_URL=http://thaliumx-opa:8181
       # Trading Services

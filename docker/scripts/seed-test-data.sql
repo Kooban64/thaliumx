@@ -178,6 +178,54 @@ INSERT INTO users (
     NOW()
 ) ON CONFLICT (email) DO NOTHING;
 
+-- Compliance Officer
+INSERT INTO users (
+    id, email, username, "firstName", "lastName", "isActive", "isVerified",
+    "kycStatus", "kycLevel", "mfaEnabled", role, permissions, "tenantId", "passwordHash",
+    "createdAt", "updatedAt"
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655440016',
+    'compliance@thaliumx.com',
+    'compliance_officer',
+    'Compliance',
+    'Officer',
+    true,
+    true,
+    'approved',
+    'advanced',
+    true,
+    'compliance',
+    '["manage_compliance", "view_reports", "manage_kyc", "sanctions_screening"]',
+    '550e8400-e29b-41d4-a716-446655440000', -- platform tenant
+    '$2b$10$8K1p/5w6QyTQJ5Ld8RgOeO8q8vO8q8vO8q8vO8q8vO8q8vO8q8v', -- CompliancePass123!
+    NOW(),
+    NOW()
+) ON CONFLICT (email) DO NOTHING;
+
+-- Finance Officer
+INSERT INTO users (
+    id, email, username, "firstName", "lastName", "isActive", "isVerified",
+    "kycStatus", "kycLevel", "mfaEnabled", role, permissions, "tenantId", "passwordHash",
+    "createdAt", "updatedAt"
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655440017',
+    'finance@thaliumx.com',
+    'finance_officer',
+    'Finance',
+    'Officer',
+    true,
+    true,
+    'approved',
+    'advanced',
+    true,
+    'finance',
+    '["manage_finance", "view_reports", "manage_accounts", "reconciliation"]',
+    '550e8400-e29b-41d4-a716-446655440000', -- platform tenant
+    '$2b$10$8K1p/5w6QyTQJ5Ld8RgOeO8q8vO8q8vO8q8vO8q8vO8q8vO8q8v', -- FinancePass123!
+    NOW(),
+    NOW()
+) ON CONFLICT (email) DO NOTHING;
+
 COMMIT;
 
 -- Display seeded data summary

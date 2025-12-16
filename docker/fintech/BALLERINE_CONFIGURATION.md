@@ -121,8 +121,8 @@ The current working configuration in `compose.yaml`:
 ```yaml
 BCRYPT_SALT: "$2b$10$.8CHAioRfbSk8KiRGNqNyu"
 HASHING_KEY_SECRET_BASE64: "JDJiJDEwJEJUbzBtd2pWRFpXcGtxNHNxUWozWmU="
-DB_URL: postgresql://ballerine:ThaliumX2025@thaliumx-ballerine-postgres:5432/ballerine
-DATABASE_URL: postgresql://ballerine:ThaliumX2025@thaliumx-ballerine-postgres:5432/ballerine
+DB_URL: postgresql://ballerine:<REDACTED>@thaliumx-ballerine-postgres:5432/ballerine
+DATABASE_URL: postgresql://ballerine:<REDACTED>@thaliumx-ballerine-postgres:5432/ballerine
 ```
 
 ## Service Dependencies

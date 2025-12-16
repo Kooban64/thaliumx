@@ -99,6 +99,62 @@ const parseToken = (token: string): any => {
   }
 };
 
+// Secure token management functions
+const setSecureTokens = async (accessToken: string, refreshToken?: string, expiresIn?: number): Promise<void> => {
+  try {
+    const response = await fetch('/api/auth/set-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        accessToken,
+        refreshToken,
+        expiresIn
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to set secure tokens');
+    }
+  } catch (error) {
+    console.error('Error setting secure tokens:', error);
+    throw error;
+  }
+};
+
+const getTokens = async (): Promise<{ accessToken: string | null; refreshToken: string | null }> => {
+  try {
+    const response = await fetch('/api/auth/tokens', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        accessToken: data.data?.accessToken || null,
+        refreshToken: data.data?.refreshToken || null,
+      };
+    }
+  } catch (error) {
+    console.error('Error getting tokens:', error);
+  }
+  return { accessToken: null, refreshToken: null };
+};
+
+const clearSecureTokens = async (): Promise<void> => {
+  try {
+    await fetch('/api/auth/clear-tokens', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Error clearing secure tokens:', error);
+  }
+};
+
 // Extract user from Keycloak token
 const extractUserFromToken = (keycloak: Keycloak): User | null => {
   if (!keycloak.token || !keycloak.tokenParsed) {
@@ -147,9 +203,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const keycloak = getKeycloakInstance();
 
-        // Check for stored tokens
-        const storedToken = localStorage.getItem('kc_token');
-        const storedRefreshToken = localStorage.getItem('kc_refresh_token');
+        // Check for stored tokens from secure cookies
+        const { accessToken: storedToken, refreshToken: storedRefreshToken } = await getTokens();
 
         const authenticated = await keycloak.init({
           onLoad: 'check-sso',
@@ -162,13 +217,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (authenticated) {
           const user = extractUserFromToken(keycloak);
-          
-          // Store tokens
+
+          // Store tokens securely in HttpOnly cookies
           if (keycloak.token) {
-            localStorage.setItem('kc_token', keycloak.token);
-          }
-          if (keycloak.refreshToken) {
-            localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
+            await setSecureTokens(keycloak.token, keycloak.refreshToken || undefined);
           }
 
           setState({
@@ -182,12 +234,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Setup token refresh
           keycloak.onTokenExpired = () => {
-            keycloak.updateToken(30).then((refreshed) => {
+            keycloak.updateToken(30).then(async (refreshed) => {
               if (refreshed && keycloak.token) {
-                localStorage.setItem('kc_token', keycloak.token);
-                if (keycloak.refreshToken) {
-                  localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
-                }
+                await setSecureTokens(keycloak.token, keycloak.refreshToken || undefined);
                 setState((prev) => ({
                   ...prev,
                   token: keycloak.token || null,
@@ -213,8 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
 
           keycloak.onAuthLogout = () => {
-            localStorage.removeItem('kc_token');
-            localStorage.removeItem('kc_refresh_token');
+            clearSecureTokens();
             setState({
               isAuthenticated: false,
               isLoading: false,
@@ -269,9 +317,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = useCallback(async (redirectUri?: string) => {
     try {
-      localStorage.removeItem('kc_token');
-      localStorage.removeItem('kc_refresh_token');
-      
+      // Clear secure tokens first
+      await clearSecureTokens();
+
       const keycloak = getKeycloakInstance();
       await keycloak.logout({
         redirectUri: redirectUri || window.location.origin,
@@ -311,13 +359,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const keycloak = getKeycloakInstance();
       const refreshed = await keycloak.updateToken(30);
-      
+
       if (refreshed && keycloak.token) {
-        localStorage.setItem('kc_token', keycloak.token);
-        if (keycloak.refreshToken) {
-          localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
-        }
-        
+        await setSecureTokens(keycloak.token, keycloak.refreshToken || undefined);
+
         const user = extractUserFromToken(keycloak);
         setState((prev) => ({
           ...prev,
@@ -326,7 +371,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           refreshToken: keycloak.refreshToken || null,
         }));
       }
-      
+
       return true;
     } catch (error) {
       console.error('Session refresh failed:', error);

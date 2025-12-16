@@ -2,8 +2,16 @@
 -- ==========================================
 -- This script runs on first container startup
 
--- Create application user (credentials stored in Vault)
-CREATE USER thaliumx WITH PASSWORD 'ThaliumX2025';
+-- Create application user (credentials should be set via environment variables)
+-- In production, use Vault or similar secret management
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'thaliumx') THEN
+        -- Use environment variable or default (change default in production!)
+        CREATE USER thaliumx WITH PASSWORD COALESCE(current_setting('CUSTOM_THALIUMX_PASSWORD', true), 'CHANGE_THIS_IN_PRODUCTION');
+    END IF;
+END
+$$;
 
 -- Grant privileges
 ALTER USER thaliumx CREATEDB;

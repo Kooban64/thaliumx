@@ -12,7 +12,9 @@ opensearch.requestHeadersWhitelist: ["securitytenant","Authorization"]
 # Username and password are set via keystore from environment variables
 # DASHBOARD_USERNAME=kibanaserver, DASHBOARD_PASSWORD from .env
 opensearch.username: kibanaserver
-opensearch.password: ThaliumX2025!wazuh@dash
+# IMPORTANT: Do not store plaintext passwords in this file.
+# Wazuh dashboard entrypoint can load credentials from environment variables/keystore.
+# opensearch.password is intentionally omitted.
 opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
 server.ssl.enabled: true
 server.ssl.key: "/usr/share/wazuh-dashboard/certs/wazuh-dashboard-key.pem"

@@ -15,7 +15,13 @@ NC='\033[0m' # No Color
 # Configuration
 CITUS_COORDINATOR="${CITUS_COORDINATOR:-thaliumx-citus-coordinator}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
-POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-ThaliumX2025}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(cat .secrets/generated/postgres-password 2>/dev/null || true)}"
+
+# Optional separate Keycloak DB user (some setups use a dedicated DB role)
+KEYCLOAK_DB_USER="${KEYCLOAK_DB_USER:-keycloak}"
+KEYCLOAK_DB_PASSWORD="${KEYCLOAK_DB_PASSWORD:-$(cat .secrets/generated/keycloak-db-password 2>/dev/null || true)}"
+
+: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (or set .secrets/generated/postgres-password)}"
 
 print_header() {
     echo -e "\n${BLUE}========================================${NC}"
@@ -409,12 +415,12 @@ init_keycloak_db() {
         psql -U "$POSTGRES_USER" -c "
         DO \$\$
         BEGIN
-            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'keycloak') THEN
-                CREATE USER keycloak WITH PASSWORD 'keycloak';
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${KEYCLOAK_DB_USER}') THEN
+                CREATE USER ${KEYCLOAK_DB_USER} WITH PASSWORD '${KEYCLOAK_DB_PASSWORD}';
             END IF;
         END
         \$\$;
-        GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+        GRANT ALL PRIVILEGES ON DATABASE keycloak TO ${KEYCLOAK_DB_USER};
     " 2>/dev/null && print_success "Keycloak database ready" || print_warning "Keycloak setup may already exist"
     
     print_success "Keycloak will auto-create its schema on first startup"

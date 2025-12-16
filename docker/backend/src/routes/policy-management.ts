@@ -9,7 +9,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import axios, { AxiosInstance } from 'axios';
 import { LoggerService } from '../services/logger';
 
-const router = Router();
+const router: Router = Router();
 
 // OPA client configuration
 const OPA_URL = process.env.OPA_URL || 'http://thaliumx-opa:8181';

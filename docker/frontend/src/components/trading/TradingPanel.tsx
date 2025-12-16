@@ -13,6 +13,14 @@ import {
   Calculator,
   AlertTriangle
 } from 'lucide-react';
+import {
+  marketOrderSchema,
+  limitOrderSchema,
+  advancedMarketOrderSchema,
+  advancedLimitOrderSchema,
+  validateSlippageProtection,
+  estimatePriceImpact
+} from '@/lib/validations/trading';
 import { tradingOrderSchema, validateForm } from '@/lib/utils';
 
 export function TradingPanel() {
@@ -63,18 +71,47 @@ export function TradingPanel() {
     setError('');
     setSuccess('');
 
-    // Validate form data
-    const orderData = {
+    // Validate form data with advanced slippage protection
+    const baseOrderData = {
       symbol: 'BTCUSDT',
-      side: orderType as 'buy' | 'sell',
-      type: orderSide as 'market' | 'limit',
-      quantity: parseFloat(amount),
-      price: orderSide === 'limit' ? parseFloat(price) : undefined,
+      side: orderType,
+      amount: amount,
+      ...(orderSide === 'limit' && { price }),
     };
 
-    const validation = validateForm(tradingOrderSchema, orderData);
+    // Use advanced schemas for better validation
+    const schema = orderSide === 'market' ? advancedMarketOrderSchema : advancedLimitOrderSchema;
+    const validation = schema.safeParse(baseOrderData);
+
     if (!validation.success) {
-      setError(Object.values(validation.errors)[0] || 'Please check your input');
+      const errorMessage = validation.error.issues[0]?.message || 'Please check your input';
+      setError(errorMessage);
+      setIsLoading(false);
+      return;
+    }
+
+    // Additional slippage protection for limit orders
+    if (orderSide === 'limit' && currentPrice) {
+      const slippageCheck = validateSlippageProtection(
+        currentPrice,
+        parseFloat(price),
+        5, // 5% max slippage
+        orderType
+      );
+
+      if (!slippageCheck.isValid) {
+        setError(slippageCheck.message || 'Slippage protection triggered');
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Estimate price impact for large orders
+    const orderSize = parseFloat(amount);
+    const estimatedImpact = estimatePriceImpact(orderSize, 1000); // Mock liquidity
+
+    if (estimatedImpact > 5) {
+      setError(`Order may cause ${estimatedImpact.toFixed(2)}% price impact. Consider reducing size.`);
       setIsLoading(false);
       return;
     }
@@ -86,7 +123,7 @@ export function TradingPanel() {
           'Content-Type': 'application/json',
         },
         credentials: 'include', // Include cookies
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(baseOrderData),
       });
 
       const data = await response.json();

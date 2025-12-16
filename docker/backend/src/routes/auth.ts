@@ -421,16 +421,112 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
   try {
     const userId = (req as any).user?.userId;
     const updateData = req.body;
-    
+
     // Remove sensitive fields that shouldn't be updated via this endpoint
     const { passwordHash, mfaSecret, mfaEnabled, ...allowedUpdates } = updateData;
-    
+
     const user = await UserService.updateUser(userId, allowedUpdates);
-    
+
     res.json({
       success: true,
       data: { user },
       message: 'Profile updated successfully',
+      timestamp: new Date(),
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Set secure HttpOnly cookies for tokens
+ * POST /api/auth/set-tokens
+ */
+export const setSecureTokens = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { accessToken, refreshToken, expiresIn } = req.body;
+
+    if (!accessToken) {
+      res.status(400).json({
+        success: false,
+        error: 'Access token is required',
+        timestamp: new Date(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+      return;
+    }
+
+    // Set HttpOnly cookies for secure token storage
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      maxAge: expiresIn || 3600, // Default 1 hour
+      path: '/'
+    };
+
+    res.cookie('access_token', accessToken, cookieOptions);
+
+    if (refreshToken) {
+      res.cookie('refresh_token', refreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Tokens set securely',
+      timestamp: new Date(),
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get current tokens from cookies (for client-side access)
+ * GET /api/auth/tokens
+ */
+export const getTokens = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const accessToken = req.cookies.access_token;
+    const refreshToken = req.cookies.refresh_token;
+
+    res.json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken,
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken
+      },
+      timestamp: new Date(),
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Clear secure tokens (logout)
+ * POST /api/auth/clear-tokens
+ */
+export const clearSecureTokens = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Clear HttpOnly cookies
+    res.clearCookie('access_token', { path: '/' });
+    res.clearCookie('refresh_token', { path: '/' });
+
+    res.json({
+      success: true,
+      message: 'Tokens cleared successfully',
       timestamp: new Date(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });

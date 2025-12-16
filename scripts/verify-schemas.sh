@@ -17,9 +17,14 @@ CITUS_COORDINATOR="${CITUS_COORDINATOR:-thaliumx-citus-coordinator}"
 TIMESCALEDB="${TIMESCALEDB:-thaliumx-timescaledb}"
 KEYCLOAK_DB="${KEYCLOAK_DB:-thaliumx-keycloak-postgres}"
 POSTGRES_USER="${POSTGRES_USER:-thaliumx}"
-POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-ThaliumX2025}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(cat .secrets/generated/postgres-password 2>/dev/null || true)}"
 TIMESCALE_USER="${TIMESCALE_USER:-dingir}"
-TIMESCALE_PASSWORD="${TIMESCALE_PASSWORD:-ThaliumX2025}"
+TIMESCALE_PASSWORD="${TIMESCALE_PASSWORD:-$(cat .secrets/generated/timescaledb-password 2>/dev/null || true)}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-$(cat .secrets/generated/redis-password 2>/dev/null || true)}"
+
+: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (or set .secrets/generated/postgres-password)}"
+: "${TIMESCALE_PASSWORD:?TIMESCALE_PASSWORD is required (or set .secrets/generated/timescaledb-password)}"
+: "${REDIS_PASSWORD:?REDIS_PASSWORD is required (or set .secrets/generated/redis-password)}"
 
 # Counters
 TOTAL_CHECKS=0
@@ -55,7 +60,7 @@ check_table_exists() {
     local database=$2
     local table=$3
     local user=${4:-postgres}
-    local password=${5:-ThaliumX2025}
+    local password=${5:-$POSTGRES_PASSWORD}
     
     result=$(docker exec -e PGPASSWORD="$password" "$container" \
         psql -U "$user" -d "$database" -t -c \
@@ -73,7 +78,7 @@ check_extension_exists() {
     local database=$2
     local extension=$3
     local user=${4:-postgres}
-    local password=${5:-ThaliumX2025}
+    local password=${5:-$POSTGRES_PASSWORD}
     
     result=$(docker exec -e PGPASSWORD="$password" "$container" \
         psql -U "$user" -d "$database" -t -c \
@@ -90,7 +95,7 @@ get_table_count() {
     local container=$1
     local database=$2
     local user=${3:-postgres}
-    local password=${4:-ThaliumX2025}
+    local password=${4:-$POSTGRES_PASSWORD}
     
     docker exec -e PGPASSWORD="$password" "$container" \
         psql -U "$user" -d "$database" -t -c \
@@ -397,7 +402,7 @@ verify_redis() {
     fi
     
     # Check Redis connectivity
-    redis_ping=$(docker exec "$redis_container" redis-cli -a "$POSTGRES_PASSWORD" PING 2>/dev/null || echo "FAIL")
+    redis_ping=$(docker exec "$redis_container" redis-cli -a "$REDIS_PASSWORD" PING 2>/dev/null || echo "FAIL")
     
     if [ "$redis_ping" = "PONG" ]; then
         print_success "Redis is responding"
@@ -406,7 +411,7 @@ verify_redis() {
     fi
     
     # Check Redis info
-    redis_keys=$(docker exec "$redis_container" redis-cli -a "$POSTGRES_PASSWORD" DBSIZE 2>/dev/null | grep -oP '\d+' || echo "0")
+    redis_keys=$(docker exec "$redis_container" redis-cli -a "$REDIS_PASSWORD" DBSIZE 2>/dev/null | grep -oP '\d+' || echo "0")
     print_success "Redis keys: $redis_keys"
 }
 

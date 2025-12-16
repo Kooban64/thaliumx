@@ -8,7 +8,22 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import apiClient from '@/lib/api/client';
-import type { AuthResponse } from '@thaliumx/shared';
+
+// Inline AuthResponse type to avoid shared package dependency
+interface AuthResponse {
+  user: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role: string;
+    isActive: boolean;
+  };
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: 'Bearer';
+}
 
 interface RegisterFormProps {
   onSuccess?: (token: string) => void;

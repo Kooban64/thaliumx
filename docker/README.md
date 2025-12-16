@@ -316,12 +316,12 @@ DB_HOST=thaliumx-citus-coordinator
 DB_PORT=5432
 DB_NAME=thaliumx
 DB_USER=thaliumx
-DB_PASSWORD=ThaliumX2025
+DB_PASSWORD=<REDACTED>
 
 # Redis
 REDIS_HOST=thaliumx-redis
 REDIS_PORT=6379
-REDIS_PASSWORD=ThaliumX2025
+REDIS_PASSWORD=<REDACTED>
 
 # Vault
 VAULT_ADDR=http://thaliumx-vault:8200

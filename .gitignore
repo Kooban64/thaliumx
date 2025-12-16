@@ -45,6 +45,11 @@ build/
 *.pyc
 __pycache__/
 
+# Frontend build artifacts accidentally committed in the past
+docker/frontend/src/components/**/*.js
+docker/frontend/src/components/**/*.d.ts
+docker/frontend/src/components/**/*.map
+
 # Docker volumes (data is stored in named volumes)
 # Don't ignore compose files or configs
 

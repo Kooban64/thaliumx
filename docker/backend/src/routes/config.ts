@@ -1,6 +1,6 @@
 /**
  * Configuration API Routes
- * 
+ *
  * Exposes configurable settings to the frontend including:
  * - Currency configuration (symbol, code, locale)
  * - KYC level limits
@@ -13,17 +13,17 @@ import { KYCService } from '../services/kyc';
 import { RBACService } from '../services/rbac';
 import { LoggerService } from '../services/logger';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /api/config/currency
  * Returns currency configuration for the platform
  */
-router.get('/currency', async (req: Request, res: Response) => {
+router.get('/currency', async (req: Request, res: Response): Promise<void> => {
   try {
     kycLimitsConfig.initialize();
     const currency = kycLimitsConfig.getCurrency();
-    
+
     res.json({
       success: true,
       data: {
@@ -47,15 +47,15 @@ router.get('/currency', async (req: Request, res: Response) => {
  * GET /api/config/kyc-limits
  * Returns KYC level limits for all levels
  */
-router.get('/kyc-limits', async (req: Request, res: Response) => {
+router.get('/kyc-limits', async (req: Request, res: Response): Promise<void> => {
   try {
     kycLimitsConfig.initialize();
     const allConfigs = kycLimitsConfig.getAllKYCLevelConfigs();
     const currency = kycLimitsConfig.getCurrency();
-    
+
     // Format limits with currency information
     const formattedLimits: Record<string, any> = {};
-    
+
     for (const [level, config] of Object.entries(allConfigs)) {
       formattedLimits[level] = {
         name: config.name,
@@ -81,7 +81,7 @@ router.get('/kyc-limits', async (req: Request, res: Response) => {
         }
       };
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -97,232 +97,6 @@ router.get('/kyc-limits', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve KYC limits'
-    });
-  }
-});
-
-/**
- * GET /api/config/kyc-limits/:level
- * Returns KYC limits for a specific level
- */
-router.get('/kyc-limits/:level', async (req: Request, res: Response) => {
-  try {
-    const level = req.params.level;
-    if (!level) {
-      return res.status(400).json({
-        success: false,
-        error: 'Level parameter is required'
-      });
-    }
-    
-    kycLimitsConfig.initialize();
-    
-    const config = kycLimitsConfig.getKYCLevelConfig(level.toUpperCase());
-    
-    if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: `KYC level '${level}' not found`
-      });
-    }
-    
-    const currency = kycLimitsConfig.getCurrency();
-    
-    res.json({
-      success: true,
-      data: {
-        level: level.toUpperCase(),
-        name: config.name,
-        description: config.description,
-        requirements: config.requirements,
-        documents: config.documents,
-        currency: {
-          code: currency.code,
-          symbol: currency.symbol
-        },
-        limits: {
-          maxInvestment: config.limits.maxInvestment,
-          maxTrading: config.limits.maxTrading,
-          maxWithdrawal: config.limits.maxWithdrawal,
-          maxDeposit: config.limits.maxDeposit,
-          maxDailyTransactions: config.limits.maxDailyTransactions,
-          // Formatted versions
-          maxInvestmentFormatted: formatCurrency(config.limits.maxInvestment),
-          maxTradingFormatted: formatCurrency(config.limits.maxTrading),
-          maxWithdrawalFormatted: formatCurrency(config.limits.maxWithdrawal),
-          maxDepositFormatted: config.limits.maxDeposit ? formatCurrency(config.limits.maxDeposit) : null
-        },
-        checks: {
-          sanctionsCheck: config.sanctionsCheck,
-          pepCheck: config.pepCheck,
-          faceVerification: config.faceVerification,
-          ongoingMonitoring: config.ongoingMonitoring
-        }
-      }
-    });
-  } catch (error: any) {
-    LoggerService.error('Failed to get KYC level limits:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve KYC level limits'
-    });
-  }
-});
-
-/**
- * GET /api/config/role-limits
- * Returns transaction limits for all roles
- */
-router.get('/role-limits', async (req: Request, res: Response) => {
-  try {
-    kycLimitsConfig.initialize();
-    const allLimits = kycLimitsConfig.getAllRoleLimits();
-    const currency = kycLimitsConfig.getCurrency();
-    
-    // Format limits with currency information
-    const formattedLimits: Record<string, any> = {};
-    
-    for (const [role, limits] of Object.entries(allLimits)) {
-      formattedLimits[role] = {
-        maxDailyVolume: limits.maxDailyVolume,
-        maxMonthlyVolume: limits.maxMonthlyVolume,
-        maxSingleTransaction: limits.maxSingleTransaction,
-        maxWithdrawalDaily: limits.maxWithdrawalDaily,
-        maxWithdrawalMonthly: limits.maxWithdrawalMonthly,
-        maxDepositDaily: limits.maxDepositDaily,
-        maxDepositMonthly: limits.maxDepositMonthly,
-        currencies: limits.currencies,
-        // Formatted versions
-        formatted: {
-          maxDailyVolume: formatCurrency(limits.maxDailyVolume),
-          maxMonthlyVolume: formatCurrency(limits.maxMonthlyVolume),
-          maxSingleTransaction: formatCurrency(limits.maxSingleTransaction),
-          maxWithdrawalDaily: formatCurrency(limits.maxWithdrawalDaily),
-          maxWithdrawalMonthly: formatCurrency(limits.maxWithdrawalMonthly),
-          maxDepositDaily: formatCurrency(limits.maxDepositDaily),
-          maxDepositMonthly: formatCurrency(limits.maxDepositMonthly)
-        }
-      };
-    }
-    
-    res.json({
-      success: true,
-      data: {
-        currency: {
-          code: currency.code,
-          symbol: currency.symbol
-        },
-        roles: formattedLimits
-      }
-    });
-  } catch (error: any) {
-    LoggerService.error('Failed to get role limits:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve role limits'
-    });
-  }
-});
-
-/**
- * GET /api/config/role-limits/:role
- * Returns transaction limits for a specific role
- */
-router.get('/role-limits/:role', async (req: Request, res: Response) => {
-  try {
-    const role = req.params.role;
-    if (!role) {
-      return res.status(400).json({
-        success: false,
-        error: 'Role parameter is required'
-      });
-    }
-    
-    kycLimitsConfig.initialize();
-    
-    const limits = kycLimitsConfig.getRoleLimits(role);
-    
-    if (!limits) {
-      return res.status(404).json({
-        success: false,
-        error: `Role '${role}' not found`
-      });
-    }
-    
-    const currency = kycLimitsConfig.getCurrency();
-    
-    res.json({
-      success: true,
-      data: {
-        role,
-        currency: {
-          code: currency.code,
-          symbol: currency.symbol
-        },
-        limits: {
-          maxDailyVolume: limits.maxDailyVolume,
-          maxMonthlyVolume: limits.maxMonthlyVolume,
-          maxSingleTransaction: limits.maxSingleTransaction,
-          maxWithdrawalDaily: limits.maxWithdrawalDaily,
-          maxWithdrawalMonthly: limits.maxWithdrawalMonthly,
-          maxDepositDaily: limits.maxDepositDaily,
-          maxDepositMonthly: limits.maxDepositMonthly,
-          currencies: limits.currencies
-        },
-        formatted: {
-          maxDailyVolume: formatCurrency(limits.maxDailyVolume),
-          maxMonthlyVolume: formatCurrency(limits.maxMonthlyVolume),
-          maxSingleTransaction: formatCurrency(limits.maxSingleTransaction),
-          maxWithdrawalDaily: formatCurrency(limits.maxWithdrawalDaily),
-          maxWithdrawalMonthly: formatCurrency(limits.maxWithdrawalMonthly),
-          maxDepositDaily: formatCurrency(limits.maxDepositDaily),
-          maxDepositMonthly: formatCurrency(limits.maxDepositMonthly)
-        }
-      }
-    });
-  } catch (error: any) {
-    LoggerService.error('Failed to get role limits:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve role limits'
-    });
-  }
-});
-
-/**
- * GET /api/config/format-amount
- * Utility endpoint to format an amount with the configured currency
- */
-router.get('/format-amount', async (req: Request, res: Response) => {
-  try {
-    const amount = parseFloat(req.query.amount as string);
-    
-    if (isNaN(amount)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid amount parameter'
-      });
-    }
-    
-    kycLimitsConfig.initialize();
-    const currency = kycLimitsConfig.getCurrency();
-    
-    res.json({
-      success: true,
-      data: {
-        amount,
-        formatted: formatCurrency(amount),
-        currency: {
-          code: currency.code,
-          symbol: currency.symbol
-        }
-      }
-    });
-  } catch (error: any) {
-    LoggerService.error('Failed to format amount:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to format amount'
     });
   }
 });

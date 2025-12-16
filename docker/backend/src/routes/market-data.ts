@@ -11,7 +11,7 @@ import { LoggerService } from '../services/logger';
 import { createError } from '../utils';
 import { rateLimiter } from '../middleware/error-handler';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /api/market/prices/:symbol

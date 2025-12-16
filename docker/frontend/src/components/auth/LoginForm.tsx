@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, Shield } from 'lucide-react';
 import apiClient from '@/lib/api/client';
-import { loginSchema, validateForm } from '@/lib/utils';
+import { loginSchema, mfaCodeSchema } from '@/lib/validations/auth';
 
 interface LoginResponse {
   accessToken?: string;
@@ -123,13 +123,14 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     setError('');
 
     // Validate form data
-    const validation = validateForm(loginSchema, {
+    const validation = loginSchema.safeParse({
       email: formData.email,
       password: formData.password,
     });
 
     if (!validation.success) {
-      setError(Object.values(validation.errors)[0] || 'Please check your input');
+      const errorMessage = validation.error.issues[0]?.message || 'Please check your input';
+      setError(errorMessage);
       setIsLoading(false);
       return;
     }
@@ -163,6 +164,15 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    // Validate MFA code
+    const mfaValidation = mfaCodeSchema.safeParse(formData.mfaCode);
+    if (!mfaValidation.success) {
+      const errorMessage = mfaValidation.error.issues[0]?.message || 'Invalid MFA code';
+      setError(errorMessage);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await apiClient.post<LoginResponse>('/api/auth/verify-mfa', {

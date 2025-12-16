@@ -45,19 +45,19 @@ VAULT_DEV_ROOT_TOKEN_ID=changeme_vault
 ```yaml
 # docker/core/compose.yaml - Hardcoded production credentials
 - VAULT_TOKEN=${VAULT_TOKEN:-<VAULT_TOKEN>}
-- DB_PASSWORD=${DB_PASSWORD:-ThaliumX2025}
-- REDIS_PASSWORD=${REDIS_PASSWORD:-ThaliumX2025}
+- DB_PASSWORD=${DB_PASSWORD:-<REDACTED>}
+- REDIS_PASSWORD=${REDIS_PASSWORD:-<REDACTED>}
 ```
 
 ```sql
 -- docker/citus/init/01-init-citus.sql
-CREATE USER thaliumx WITH PASSWORD 'ThaliumX2025';
+CREATE USER thaliumx WITH PASSWORD '<REDACTED>';
 ```
 
 ```yaml
 # docker/observability/compose.yaml
-DATA_SOURCE_NAME: postgresql://postgres:ThaliumX2025@thaliumx-postgres:5432/thaliumx
-REDIS_PASSWORD: ThaliumX2025
+DATA_SOURCE_NAME: postgresql://postgres:<REDACTED>@thaliumx-postgres:5432/thaliumx
+REDIS_PASSWORD: <REDACTED>
 ```
 
 **Impact**: Complete system compromise if credentials are exposed  
@@ -123,7 +123,7 @@ allow_admin:
   
 admin_key:
   - name: admin
-    key: ThaliumX2025AdminKey  # Hardcoded admin key
+    key: <REDACTED>  # Hardcoded admin key (redacted)
 ```
 
 **Impact**: Unauthorized gateway configuration changes  

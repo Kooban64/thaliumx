@@ -121,13 +121,13 @@ services:
     environment:
       # Admin credentials
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-ThaliumX2025}
-      
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
       # Database configuration
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://thaliumx-postgres:5432/${POSTGRES_DB:-thaliumx}
       KC_DB_USERNAME: ${POSTGRES_USER:-thaliumx}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-ThaliumX2025}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KC_DB_SCHEMA: keycloak
       
       # Health and metrics
@@ -242,7 +242,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-thaliumx}
       POSTGRES_USER: ${POSTGRES_USER:-thaliumx}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ThaliumX2025}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../databases/init:/docker-entrypoint-initdb.d:ro

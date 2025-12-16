@@ -12,11 +12,11 @@ services:
     command: start-dev
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-ThaliumX2025}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://thaliumx-postgres:5432/${POSTGRES_DB:-thaliumx}
       KC_DB_USERNAME: ${POSTGRES_USER:-thaliumx}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-ThaliumX2025}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       # Security settings
@@ -50,7 +50,7 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-thaliumx-vault-token-2025}
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:?VAULT_TOKEN is required}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
       VAULT_ADDR: http://127.0.0.1:8200
       VAULT_API_ADDR: http://thaliumx-vault:8200
@@ -79,7 +79,16 @@ services:
     restart: "no"
     environment:
       VAULT_ADDR: http://thaliumx-vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN:-thaliumx-vault-token-2025}
+      VAULT_TOKEN: ${VAULT_TOKEN:?VAULT_TOKEN is required}
+
+      # Values written into Vault (avoid hardcoded secrets)
+      POSTGRES_DB: ${POSTGRES_DB:-thaliumx}
+      POSTGRES_USER: ${POSTGRES_USER:-thaliumx}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      BALLERINE_DB_PASSWORD: ${BALLERINE_DB_PASSWORD:?BALLERINE_DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -100,7 +109,7 @@ services:
         # Create secrets for Ballerine (with correct keys for vault-secrets.js)
         echo "Creating Ballerine secrets..."
         vault kv put kv/fintech/ballerine \
-          db_password="dW2QSkQnxJhaY2pP8mAt7YR9qtmbaHZ7" \
+          db_password="$BALLERINE_DB_PASSWORD" \
           session_secret="ballerine-session-secret-key-production" \
           api_key="ballerine-api-key-for-production" \
           hashing_key_secret="ballerine-hashing-key-secret" \
@@ -113,10 +122,10 @@ services:
         # Create secrets for Backend
         echo "Creating Backend secrets..."
         vault kv put kv/fintech/backend \
-          DATABASE_URL="postgresql://thaliumx:dW2QSkQnxJhaY2pP8mAt7YR9qtmbaHZ7@thaliumx-postgres:5432/thaliumx" \
-          REDIS_URL="redis://:thaliumx_redis_password@thaliumx-redis:6379" \
-          JWT_SECRET="thaliumx-jwt-secret-key-for-production" \
-          ENCRYPTION_KEY="thaliumx-encryption-key-32bytes!"
+          DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@thaliumx-postgres:5432/$POSTGRES_DB" \
+          REDIS_URL="redis://:$REDIS_PASSWORD@thaliumx-redis:6379" \
+          JWT_SECRET="$JWT_SECRET" \
+          ENCRYPTION_KEY="$ENCRYPTION_KEY"
         
         # Create secrets for BlinkFinance
         echo "Creating BlinkFinance secrets..."

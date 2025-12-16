@@ -5,16 +5,23 @@
 db = db.getSiblingDB('admin');
 
 // Create application user with readWrite access to thaliumx database
-db.createUser({
-  user: 'thaliumx',
-  pwd: 'ThaliumX2025',
-  roles: [
-    { role: 'readWrite', db: 'thaliumx' },
-    { role: 'readWrite', db: 'thaliumx_audit' },
-    { role: 'readWrite', db: 'thaliumx_fintech' },
-    { role: 'dbAdmin', db: 'thaliumx' }
-  ]
-});
+const appUser = (typeof process !== 'undefined' && process.env && process.env.MONGO_APP_USER) || 'thaliumx';
+const appPassword = typeof process !== 'undefined' && process.env ? process.env.MONGO_APP_PASSWORD : undefined;
+
+if (!appPassword) {
+  print('Skipping application user creation: MONGO_APP_PASSWORD not set');
+} else {
+  db.createUser({
+    user: appUser,
+    pwd: appPassword,
+    roles: [
+      { role: 'readWrite', db: 'thaliumx' },
+      { role: 'readWrite', db: 'thaliumx_audit' },
+      { role: 'readWrite', db: 'thaliumx_fintech' },
+      { role: 'dbAdmin', db: 'thaliumx' }
+    ]
+  });
+}
 
 // Switch to thaliumx database
 db = db.getSiblingDB('thaliumx');

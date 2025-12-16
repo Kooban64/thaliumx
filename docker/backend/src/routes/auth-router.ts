@@ -33,7 +33,10 @@ import {
   validateRefreshToken,
   validateChangePassword,
   validateResetPassword,
-  validateConfirmResetPassword
+  validateConfirmResetPassword,
+  setSecureTokens,
+  getTokens,
+  clearSecureTokens
 } from './auth';
 import { authenticateToken } from '../middleware/error-handler';
 import { AppError } from '../utils/error-handler';
@@ -211,5 +214,10 @@ router.post('/mfa/use-backup', authenticateToken, async (req, res, next) => {
     next(error);
   }
 });
+
+// Secure token management routes
+router.post('/set-tokens', setSecureTokens);
+router.get('/tokens', getTokens);
+router.post('/clear-tokens', clearSecureTokens);
 
 export default router;

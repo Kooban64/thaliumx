@@ -47,12 +47,17 @@ export class MigrationRunner {
   static async initialize(): Promise<void> {
     // Create direct database connection for migrations
     // This avoids initializing all services which may depend on tables that don't exist yet
+    const dbPassword = process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD;
+    if (!dbPassword) {
+      throw new Error('Database password is required for migrations (set DB_PASSWORD or POSTGRES_PASSWORD)');
+    }
+
     const config = {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || process.env.POSTGRES_PORT || '5432'),
       database: process.env.DB_NAME || process.env.POSTGRES_DB || 'thaliumx',
       username: process.env.DB_USER || process.env.POSTGRES_USER || 'thaliumx',
-      password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'ThaliumX2025',
+      password: dbPassword,
       dialect: 'postgres' as const,
       logging: false, // Disable logging for migrations
       pool: {
@@ -238,4 +243,3 @@ if (require.main === module) {
     }
   })();
 }
-

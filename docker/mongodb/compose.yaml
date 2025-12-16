@@ -5,7 +5,7 @@ services:
     hostname: thaliumx-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-thaliumx}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD is required}
       MONGO_INITDB_DATABASE: thaliumx
     command:
       - mongod
@@ -21,7 +21,7 @@ services:
     networks:
       - thaliumx-net
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "-u", "${MONGO_INITDB_ROOT_USERNAME:-thaliumx}", "-p", "${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025}", "--authenticationDatabase", "admin"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "-u", "${MONGO_INITDB_ROOT_USERNAME:-thaliumx}", "-p", "${MONGO_INITDB_ROOT_PASSWORD}", "--authenticationDatabase", "admin"]
       interval: 30s
       timeout: 10s
       retries: 5

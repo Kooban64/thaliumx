@@ -1,40 +1,43 @@
 import { test, expect } from '@playwright/test';
 
 // Test user credentials (seeded in database)
+// All users use the same password hash for 'ThaliumX2025!' in seed data
+const TEST_PASSWORD = 'ThaliumX2025!';
+
 const TEST_USERS = {
   platformAdmin: {
     email: 'admin@thaliumx.com',
-    password: 'AdminPass123!',
+    password: TEST_PASSWORD,
     role: 'admin',
     expectedRedirect: '/dashboard'
   },
   brokerAdmin: {
     email: 'broker@thaliumx.com',
-    password: 'BrokerPass123!',
+    password: TEST_PASSWORD,
     role: 'broker-admin',
     expectedRedirect: '/dashboard'
   },
   trader: {
     email: 'trader@thaliumx.com',
-    password: 'TraderPass123!',
+    password: TEST_PASSWORD,
     role: 'trader',
     expectedRedirect: '/dashboard'
   },
   basicUser: {
     email: 'user@thaliumx.com',
-    password: 'UserPass123!',
+    password: TEST_PASSWORD,
     role: 'user',
     expectedRedirect: '/dashboard'
   },
   pendingKyc: {
     email: 'pending@thaliumx.com',
-    password: 'PendingPass123!',
+    password: TEST_PASSWORD,
     role: 'pending-kyc',
     expectedRedirect: '/dashboard'
   },
   suspended: {
     email: 'suspended@thaliumx.com',
-    password: 'SuspendedPass123!',
+    password: TEST_PASSWORD,
     role: 'suspended',
     expectedRedirect: '/auth' // Should not allow login
   }

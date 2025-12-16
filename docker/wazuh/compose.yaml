@@ -77,6 +77,9 @@ services:
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
       - "bootstrap.memory_lock=true"
+      # Used by healthcheck only (do not hardcode in this file)
+      - WAZUH_INDEXER_USERNAME=${WAZUH_INDEXER_USERNAME:-admin}
+      - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:?WAZUH_INDEXER_PASSWORD is required}
     ulimits:
       memlock:
         soft: -1
@@ -98,7 +101,7 @@ services:
     networks:
       - thaliumx-net
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -k -u admin:ThaliumX2025!wazuh@idx https://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test: ["CMD-SHELL", "curl -s -k -u $WAZUH_INDEXER_USERNAME:$WAZUH_INDEXER_PASSWORD https://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
       interval: 30s
       timeout: 10s
       retries: 5

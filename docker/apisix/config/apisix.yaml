@@ -19,10 +19,10 @@ apisix:
   # Admin API key (stored in Vault: kv/thaliumx/gateway/apisix)
   admin_key:
     - name: admin
-      key: ThaliumX2025AdminKey
+      key: "${APISIX_ADMIN_KEY}"
       role: admin
     - name: viewer
-      key: ThaliumX2025ViewerKey
+      key: "${APISIX_VIEWER_KEY}"
       role: viewer
 
   # SSL configuration

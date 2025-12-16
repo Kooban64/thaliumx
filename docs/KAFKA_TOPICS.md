@@ -364,7 +364,7 @@ Access the Kafka UI at: http://localhost:8081
 
 Credentials:
 - Username: admin
-- Password: ThaliumX2025
+- Password: <REDACTED>
 
 Features:
 - Topic management

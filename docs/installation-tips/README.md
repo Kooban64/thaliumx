@@ -1,5 +1,7 @@
 # Installation Tips & Special Fixes
 
+**⚠️ DEPRECATED: This document contains hardcoded credentials and outdated information. Use the official production deployment guides instead. All credentials should be managed through Vault.**
+
 This document captures all the important fixes, workarounds, and special configurations discovered during the Thaliumx platform setup.
 
 ## Table of Contents
@@ -109,7 +111,7 @@ Blnk requires a `blnk.json` configuration file:
 {
   "project_name": "Thaliumx Ledger",
   "data_source": {
-    "dns": "postgres://blnk:ThaliumX2025@thaliumx-postgres:5432/blnk?sslmode=disable"
+    "dns": "postgres://blnk:<REDACTED>@thaliumx-postgres:5432/blnk?sslmode=disable"
   },
   "redis": {
     "dns": "redis://thaliumx-redis:6379"
@@ -210,7 +212,7 @@ depends_on:
 ```yaml
 environment:
   KEYCLOAK_ADMIN: admin
-  KEYCLOAK_ADMIN_PASSWORD: ThaliumX2025
+  KEYCLOAK_ADMIN_PASSWORD: <REDACTED>
 ```
 
 ---

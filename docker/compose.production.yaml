@@ -153,11 +153,9 @@ services:
       -c max_parallel_workers_per_gather=2
       -c max_parallel_workers=4
       -c max_parallel_maintenance_workers=2
-      -c log_statement=all
+      -c log_statement=none
       -c log_connections=on
       -c log_disconnections=on
-    ports:
-      - "5432:5432"
     networks:
       - thaliumx-network
       - database-network
@@ -165,6 +163,14 @@ services:
       test: ["CMD-SHELL", "pg_isready -U thaliumx -d thaliumx"]
       <<: *healthcheck-defaults
     logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   # Redis - Caching and Sessions
   redis:
@@ -190,8 +196,6 @@ services:
       - redis-data:/data
       - ./certs/services/redis:/certs:ro
       - ./certs/ca/ca.crt:/certs/ca.crt:ro
-    ports:
-      - "6379:6379"
     networks:
       - thaliumx-network
       - database-network
@@ -222,8 +226,6 @@ services:
       --tlsCAFile /certs/ca.crt
       --auth
       --bind_ip_all
-    ports:
-      - "27017:27017"
     networks:
       - thaliumx-network
       - database-network
@@ -265,8 +267,9 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -278,15 +281,20 @@ services:
       KAFKA_NUM_PARTITIONS: 3
     volumes:
       - kafka-data:/var/lib/kafka/data
-    ports:
-      - "9092:9092"
-      - "29092:29092"
     networks:
       - thaliumx-network
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       <<: *healthcheck-defaults
     logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   # ============================================
   # AUTHENTICATION
@@ -331,6 +339,14 @@ services:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
       <<: *healthcheck-defaults
     logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   # ============================================
   # API GATEWAY
@@ -364,6 +380,8 @@ services:
         condition: service_healthy
     environment:
       <<: *common-env
+      # Required secrets (inject via CI/CD or docker compose --env-file; do not hardcode)
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY:?APISIX_ADMIN_KEY is required}
     volumes:
       - ./apisix/config/apisix-production.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./certs/services/apisix:/usr/local/apisix/certs:ro
@@ -380,6 +398,14 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:9080/apisix/status"]
       <<: *healthcheck-defaults
     logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # ============================================
   # APPLICATION SERVICES
@@ -388,8 +414,8 @@ services:
   # Backend API Service
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: docker
+      dockerfile: backend/Dockerfile
       args:
         NODE_ENV: production
     image: thaliumx/backend:${VERSION:-latest}
@@ -451,14 +477,8 @@ services:
 
   # Frontend Application
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: production
-        NEXT_PUBLIC_API_URL: ${API_URL:-https://api.thaliumx.com}
-        NEXT_PUBLIC_KEYCLOAK_URL: ${KEYCLOAK_URL:-https://auth.thaliumx.com}
-    image: thaliumx/frontend:${VERSION:-latest}
+    image: thaliumx/frontend:latest
+    command: ["node", ".next/standalone/docker/frontend/server.js"]
     container_name: thaliumx-frontend
     <<: *restart-policy
     depends_on:

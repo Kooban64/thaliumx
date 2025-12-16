@@ -184,7 +184,7 @@ class ExternalExchangeService {
                 credentials: {
                     apiKey: process.env.OKX_API_KEY || 'ff25371c-653e-4c1d-9761-376eb76960b9',
                     apiSecret: process.env.OKX_API_SECRET || '5738F7B9C962420CFCB148B08A10A6A3',
-                    passphrase: process.env.OKX_PASSPHRASE || 'ThaliumX2025!',
+                    passphrase: process.env.OKX_PASSPHRASE || '',
                     sandbox: false
                 },
                 enabled: true,

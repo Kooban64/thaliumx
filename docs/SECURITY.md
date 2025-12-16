@@ -1,5 +1,7 @@
 # ThaliumX Security Documentation
 
+**⚠️ DEPRECATED: This document contains hardcoded credentials and outdated information. Use the official production deployment guides instead. All credentials should be managed through Vault.**
+
 This document describes the security measures implemented in the ThaliumX platform.
 
 ## Table of Contents

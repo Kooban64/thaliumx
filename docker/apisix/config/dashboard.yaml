@@ -20,11 +20,11 @@ conf:
       file_path: /dev/stdout
 
 authentication:
-  secret: ThaliumX2025DashboardSecret
+  secret: "${APISIX_DASHBOARD_SECRET}"
   expire_time: 3600
   users:
     - username: admin
-      password: ThaliumX2025
+      password: "${APISIX_DASHBOARD_PASSWORD}"
 
 plugins:
   - api-breaker

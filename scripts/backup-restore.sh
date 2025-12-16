@@ -25,12 +25,20 @@ if [ -f "docker/.env" ]; then
 fi
 
 # Default credentials (override with environment variables)
+# NOTE: No hardcoded passwords. For production, use env vars or .secrets/generated/*.
 POSTGRES_USER="${POSTGRES_USER:-thaliumx}"
-POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-ThaliumX2025}"
 POSTGRES_DB="${POSTGRES_DB:-thaliumx}"
-MONGO_USER="${MONGO_INITDB_ROOT_USERNAME:-admin}"
-MONGO_PASSWORD="${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025}"
-REDIS_PASSWORD="${REDIS_PASSWORD:-ThaliumX2025}"
+MONGO_USER="${MONGO_INITDB_ROOT_USERNAME:-thaliumx}"
+
+# Load secrets from files if available (compose.production.yaml uses the same pattern)
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(cat .secrets/generated/postgres-password 2>/dev/null || true)}"
+MONGO_PASSWORD="${MONGO_INITDB_ROOT_PASSWORD:-$(cat .secrets/generated/mongodb-password 2>/dev/null || true)}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-$(cat .secrets/generated/redis-password 2>/dev/null || true)}"
+
+# Fail fast if required secrets are missing
+: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (or set .secrets/generated/postgres-password)}"
+: "${MONGO_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD is required (or set .secrets/generated/mongodb-password)}"
+: "${REDIS_PASSWORD:?REDIS_PASSWORD is required (or set .secrets/generated/redis-password)}"
 
 # Functions
 print_header() {

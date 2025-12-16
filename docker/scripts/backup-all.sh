@@ -69,7 +69,7 @@ echo "Backing up MongoDB..."
 if docker ps --format '{{.Names}}' | grep -q "thaliumx-mongodb"; then
     docker exec thaliumx-mongodb mongodump \
         --username=${MONGO_INITDB_ROOT_USERNAME:-thaliumx} \
-        --password=${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025} \
+        --password=${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD is required} \
         --authenticationDatabase=admin \
         --archive > "${BACKUP_DIR}/mongodb.archive" 2>/dev/null
     echo -e "  ${GREEN}✓ MongoDB backed up${NC}"
@@ -83,7 +83,7 @@ fi
 echo "Backing up Redis..."
 if docker ps --format '{{.Names}}' | grep -q "thaliumx-redis"; then
     # Trigger background save
-    docker exec thaliumx-redis redis-cli -a "${REDIS_PASSWORD:-ThaliumX2025}" BGSAVE 2>/dev/null || true
+    docker exec thaliumx-redis redis-cli -a "${REDIS_PASSWORD:?REDIS_PASSWORD is required}" BGSAVE 2>/dev/null || true
     sleep 2
     # Copy the dump file
     docker cp thaliumx-redis:/data/dump.rdb "${BACKUP_DIR}/redis.rdb" 2>/dev/null || true

@@ -211,7 +211,7 @@ vault kv put kv/fintech/backend \
 
 vault kv put kv/trading/dingir \
     db_password="${POSTGRES_PASSWORD:-dW2QSkQnxJhaY2pP8mAt7YR9qtmbaHZ7}" \
-    kafka_password="${KAFKA_SASL_PASSWORD:-ThaliumX2025kafka}"
+    kafka_password="${KAFKA_SASL_PASSWORD:-$(openssl rand -base64 32)}"
 
 echo ""
 echo -e "${GREEN}Initial secrets created successfully!${NC}"

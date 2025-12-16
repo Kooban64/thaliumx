@@ -309,7 +309,7 @@ open http://localhost:8200
 Token: <VAULT_TOKEN>
 
 # Store a secret
-vault kv put secret/thaliumx/database username=thaliumx password=ThaliumX2025
+vault kv put secret/thaliumx/database username=thaliumx password=<REDACTED>
 ```
 
 ### Environment Variables
@@ -321,9 +321,9 @@ Core services use these environment variables:
 | `VAULT_ADDR` | Vault server address | http://thaliumx-vault:8200 |
 | `VAULT_TOKEN` | Vault authentication token | (required) |
 | `DB_HOST` | PostgreSQL host | thaliumx-postgres |
-| `DB_PASSWORD` | Database password | ThaliumX2025 |
-| `REDIS_PASSWORD` | Redis password | ThaliumX2025 |
-| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret | ThaliumX2025 |
+| `DB_PASSWORD` | Database password | <REDACTED> |
+| `REDIS_PASSWORD` | Redis password | <REDACTED> |
+| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret | <REDACTED> |
 
 ---
 
@@ -398,10 +398,10 @@ curl -s http://localhost:5001/health
 |---------|-----|-------------|
 | **Frontend** | http://localhost:3001 | - |
 | **Backend API** | http://localhost:3002 | - |
-| Grafana | http://localhost:3000 | admin / ThaliumX2025 |
-| Keycloak | http://localhost:8080 | admin / ThaliumX2025 |
+| Grafana | http://localhost:3000 | admin / <REDACTED> |
+| Keycloak | http://localhost:8080 | admin / <REDACTED> |
 | Vault | http://localhost:8200 | Token: <VAULT_TOKEN> |
-| APISIX Dashboard | http://localhost:9000 | admin / ThaliumX2025 |
+| APISIX Dashboard | http://localhost:9000 | admin / <REDACTED> |
 | Kafka UI | http://localhost:8081 | - |
 | Wazuh Dashboard | https://localhost:5601 | admin / SecretPassword |
 | Ballerine Backoffice | http://localhost:3004 | - |
@@ -436,9 +436,9 @@ curl -s http://localhost:5001/health
 
 | Service | Connection String |
 |---------|-------------------|
-| PostgreSQL | `postgres://thaliumx:ThaliumX2025@localhost:5432/thaliumx` |
-| MongoDB | `mongodb://thaliumx:ThaliumX2025@localhost:27017` |
-| Redis | `redis://:ThaliumX2025@localhost:6379` |
+| PostgreSQL | `postgres://thaliumx:<REDACTED>@localhost:5432/thaliumx` |
+| MongoDB | `mongodb://thaliumx:<REDACTED>@localhost:27017` |
+| Redis | `redis://:<REDACTED>@localhost:6379` |
 
 ---
 

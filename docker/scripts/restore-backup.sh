@@ -131,7 +131,7 @@ if [ -f "${BACKUP_DIR}/mongodb.archive" ]; then
     if docker ps --format '{{.Names}}' | grep -q "thaliumx-mongodb"; then
         docker exec -i thaliumx-mongodb mongorestore \
             --username=${MONGO_INITDB_ROOT_USERNAME:-thaliumx} \
-            --password=${MONGO_INITDB_ROOT_PASSWORD:-ThaliumX2025} \
+            --password=${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD is required} \
             --authenticationDatabase=admin \
             --archive --drop < "${BACKUP_DIR}/mongodb.archive" 2>/dev/null || true
         echo -e "  ${GREEN}✓ MongoDB restored${NC}"
